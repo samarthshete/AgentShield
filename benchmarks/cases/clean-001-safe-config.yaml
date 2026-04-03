@@ -1,0 +1,22 @@
+id: "CLEAN-001"
+name: "Clean config — no findings expected"
+category: "TOOL_POISONING"
+description: >
+  A completely benign MCP config that should produce zero findings.
+
+input:
+  content: |
+    {
+      "mcpServers": {
+        "weather": {
+          "command": "python",
+          "args": ["weather_server.py"],
+          "description": "Returns current weather data for a given city."
+        }
+      }
+    }
+  format: "json"
+
+expect:
+  min_findings: 0
+  categories: []

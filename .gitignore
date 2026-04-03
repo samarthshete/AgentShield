@@ -1,0 +1,53 @@
+.DS_Store
+
+# Internal planning docs (keep local, never publish)
+PROJECT.md
+CURRENT_STATE.md
+TASK.md
+DECISIONS.md
+
+# Python / virtualenv
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.python-version
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Local outputs and artifacts
+reports/
+reports-test/
+agentshield-output/
+agentshield-reports/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Editor / OS junk
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Generic temp files
+*.tmp
+*.temp
+*.log
+tmp/
+temp/

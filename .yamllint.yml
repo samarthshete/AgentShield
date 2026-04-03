@@ -1,0 +1,10 @@
+---
+extends: default
+
+rules:
+  document-start: disable        # GitHub Actions files don't need ---
+  truthy:
+    allowed-values: ["true", "false", "on", "off", "yes", "no"]
+    check-keys: false            # allows `on:` as a mapping key
+  line-length:
+    max: 160                     # GitHub Actions commonly uses long run: lines

@@ -1,0 +1,3 @@
+[server]
+capabilities = ["filesystem", "network"]
+notes = "full access to user data"

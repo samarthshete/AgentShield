@@ -1,0 +1,114 @@
+name: AgentShield Security Scan
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch:
+    inputs:
+      scan_path:
+        description: "Path inside the repo to scan (default: .)"
+        required: false
+        default: "."
+      fail_on:
+        description: "Minimum severity that fails the workflow (info|low|medium|high|critical)"
+        required: false
+        default: "high"
+
+jobs:
+  agentshield-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write   # needed only for PR comment step
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install AgentShield
+        run: pip install -e ".[dev]"
+
+      - name: Run scan
+        id: scan
+        # The scan exits 1 if findings meet --fail-on threshold.
+        # We capture the exit code instead of hard-failing here so we can
+        # still upload the report artifacts before deciding whether to fail.
+        run: |
+          SCAN_PATH="${{ github.event.inputs.scan_path || '.' }}"
+          FAIL_ON="${{ github.event.inputs.fail_on || 'high' }}"
+          python -m agentshield scan "$SCAN_PATH" \
+            --format both \
+            --output agentshield-reports \
+            --db-path agentshield.db \
+            --fail-on "$FAIL_ON" \
+            --verbose
+          echo "scan_exit=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Generate PR comment summary
+        if: github.event_name == 'pull_request'
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          sys.path.insert(0, ".")
+          from agentshield.models.scan import ScanRun
+          from agentshield.models.finding import Finding
+          from agentshield.reporting.markdown_report import pr_comment_body
+
+          data = json.loads(pathlib.Path("agentshield-reports/findings.json").read_text())
+          scan_run = ScanRun(**data["scan_run"])
+          findings = [Finding(**f) for f in data.get("findings", [])]
+          body = pr_comment_body(scan_run, findings)
+          pathlib.Path("agentshield-reports/pr-summary.md").write_text(body)
+          EOF
+
+      - name: Upload JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentshield-findings-json
+          path: agentshield-reports/findings.json
+          if-no-files-found: warn
+
+      - name: Upload Markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentshield-findings-md
+          path: agentshield-reports/findings.md
+          if-no-files-found: warn
+
+      - name: Post PR comment with scan summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summaryPath = 'agentshield-reports/pr-summary.md';
+            if (!fs.existsSync(summaryPath)) {
+              console.log('No pr-summary.md to post.');
+              return;
+            }
+            const body = fs.readFileSync(summaryPath, 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Fail on high/critical findings
+        if: steps.scan.outputs.scan_exit == '1'
+        run: |
+          echo "AgentShield found high or critical security findings. See report artifacts."
+          exit 1

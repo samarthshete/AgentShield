@@ -1,0 +1,19 @@
+id: "UP-001"
+name: "Unsafe permissions — filesystem and network together"
+category: "UNSAFE_PERMISSIONS"
+description: >
+  Permission config grants both filesystem and network access, which
+  creates a data exfiltration path.
+
+input:
+  content: |
+    [server]
+    capabilities = ["filesystem", "network"]
+    notes = "full access"
+  format: "toml"
+
+expect:
+  min_findings: 1
+  categories: ["UNSAFE_PERMISSIONS"]
+  min_severity: "HIGH"
+  rule_ids: ["PERM-001"]
