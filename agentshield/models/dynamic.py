@@ -54,7 +54,11 @@ class DynamicScanResult(BaseModel):
     scenario_name: str
     category: str
     violations: list[PolicyViolation] = Field(default_factory=list)
+    raw_violations: list[PolicyViolation] = Field(default_factory=list)
+    dismissed_violations: list[PolicyViolation] = Field(default_factory=list)
     trace: SimTrace
     violation_count: int = 0
     max_severity: str | None = None
     passed_clean: bool = True
+    judge_type: str = "rule_based"
+    judge_model: str | None = None

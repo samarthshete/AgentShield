@@ -72,6 +72,89 @@ Exit codes: `0` — all scenarios clean, `1` — violations detected.
 
 Print the installed version.
 
+## Web API (Phase F1)
+
+AgentShield now includes a thin FastAPI wrapper over the existing CLI/service logic.
+
+Start it locally:
+
+```bash
+uvicorn agentshield.web.app:app --reload
+```
+
+Base URL: `http://127.0.0.1:8000`
+
+Implemented endpoints:
+
+- `GET /api/health`
+- `POST /api/scan`
+- `POST /api/benchmark`
+- `POST /api/simulate`
+- `GET /api/metrics`
+- `GET /api/history/scans`
+- `GET /api/history/dynamic`
+- `GET /api/runs/{id}`
+
+## Web Frontend (Phase F9)
+
+The React/TypeScript frontend console lives in `web/` and is complete through
+Phase F9 (responsive polish + final cleanup).
+
+Run locally:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Default URL: `http://127.0.0.1:5173`
+
+Current routes:
+- `/dashboard`
+- `/static-scan`
+- `/dynamic-simulation`
+- `/benchmarks`
+- `/metrics`
+- `/run-history`
+
+Dashboard status (F3):
+- Uses live backend APIs (`/api/metrics`, `/api/history/scans`, `/api/history/dynamic`)
+- Shows high-level security posture cards for first-look orientation
+- Includes loading, error, and empty states plus manual refresh
+
+Static Scan status (F4):
+- Uses live `POST /api/scan` execution from the web form
+- Supports target path, output format, fail-on severity, and optional verbose raw payload view
+- Renders findings summary, severity/category breakdowns, filterable findings table, evidence/recommendation detail, and report artifact paths
+
+Dynamic Simulation status (F5):
+- Uses live `POST /api/simulate` execution
+- Supports scenario selection, judge selection (`rule_based` / `openai` / `claude`), optional model override, and verbose mode
+- Makes raw vs confirmed vs dismissed outcomes explicit per scenario
+- Shows judge type/model, max severity, confirmed violations, dismissed violations, and report artifact paths
+
+Benchmarks status (F6):
+- Uses live `POST /api/benchmark` execution
+- Shows total cases, passed, failed, pass rate, and category breakdown
+- Includes failed-case details with reasons and report artifact path
+
+Metrics status (F7):
+- Uses live `GET /api/metrics`
+- Shows attack categories, 11-rule inventory, benchmark stats, dynamic stats, rule coverage, and project summary metrics
+- Uses cards plus compact tables (no chart clutter)
+
+Run History status (F8):
+- Uses live `GET /api/history/scans` and `GET /api/history/dynamic`
+- Supports selecting any run and loading details via `GET /api/runs/{id}`
+- Shows timestamps, findings/violation counts, risk/judge/severity summaries, and per-run detailed records
+
+Responsive polish status (F9):
+- Shared API call helpers now keep endpoint usage consistent across pages
+- Mobile/tablet layout and table responsiveness were polished for readability
+- Loading/error/empty-state behavior is now more consistent (including retry actions)
+- Dead placeholder-style UI was removed as part of final cleanup
+
 ## CI / CD integration
 
 AgentShield ships two GitHub Actions workflows:

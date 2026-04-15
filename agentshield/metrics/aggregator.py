@@ -94,6 +94,7 @@ def _run_dynamic_scenarios() -> list[DynamicScanResult]:
             scenario_name=payload.scenario_name,
             category=payload.category,
             violations=violations,
+            raw_violations=list(violations),
             trace=trace,
             violation_count=len(violations),
             max_severity=max_sev,

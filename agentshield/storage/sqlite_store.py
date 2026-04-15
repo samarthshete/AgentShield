@@ -9,7 +9,7 @@ from agentshield.models.scan import ScanRun
 from agentshield.models.target import ScannedTarget
 
 if TYPE_CHECKING:
-    from agentshield.models.dynamic import DynamicScanResult
+    from agentshield.models.dynamic import DynamicScanResult, PolicyViolation
 
 
 def _ensure_columns(conn: sqlite3.Connection, table: str, column_defs: dict[str, str]) -> None:
@@ -78,8 +78,11 @@ def init_sqlite(db_path: str | Path) -> None:
             category TEXT NOT NULL,
             ran_at TEXT NOT NULL,
             violation_count INTEGER DEFAULT 0,
+            raw_violation_count INTEGER DEFAULT 0,
             max_severity TEXT,
-            passed_clean INTEGER NOT NULL DEFAULT 1
+            passed_clean INTEGER NOT NULL DEFAULT 1,
+            judge_type TEXT DEFAULT 'rule_based',
+            judge_model TEXT
         )
         """
     )
@@ -94,11 +97,27 @@ def init_sqlite(db_path: str | Path) -> None:
             title TEXT NOT NULL,
             evidence TEXT,
             step_seq INTEGER,
-            recommendation TEXT
+            recommendation TEXT,
+            status TEXT DEFAULT 'confirmed'
         )
         """
     )
     conn.commit()
+
+    _ensure_columns(
+        conn,
+        "dynamic_scan_runs",
+        {
+            "raw_violation_count": "INTEGER DEFAULT 0",
+            "judge_type": "TEXT DEFAULT 'rule_based'",
+            "judge_model": "TEXT",
+        },
+    )
+    _ensure_columns(
+        conn,
+        "policy_violations",
+        {"status": "TEXT DEFAULT 'confirmed'"},
+    )
 
     _ensure_columns(
         conn,
@@ -199,12 +218,14 @@ def persist_dynamic_scan(
     conn = sqlite3.connect(str(db_path))
     conn.execute("PRAGMA foreign_keys = ON")
     cur = conn.cursor()
+    raw_count = len(result.raw_violations) if result.raw_violations else result.violation_count
     cur.execute(
         """
         INSERT INTO dynamic_scan_runs (
             id, scenario_id, scenario_name, category, ran_at,
-            violation_count, max_severity, passed_clean
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            violation_count, raw_violation_count, max_severity, passed_clean,
+            judge_type, judge_model
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             run_id,
@@ -213,17 +234,21 @@ def persist_dynamic_scan(
             result.category,
             ran_at,
             result.violation_count,
+            raw_count,
             result.max_severity,
             1 if result.passed_clean else 0,
+            result.judge_type,
+            result.judge_model,
         ),
     )
-    for v in result.violations:
+
+    def _insert_violation(v: PolicyViolation, status: str) -> None:
         cur.execute(
             """
             INSERT INTO policy_violations (
                 id, dynamic_run_id, policy_id, category, severity,
-                title, evidence, step_seq, recommendation
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                title, evidence, step_seq, recommendation, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 _uuid.uuid4().hex,
@@ -235,7 +260,190 @@ def persist_dynamic_scan(
                 v.evidence,
                 v.step_seq,
                 v.recommendation,
+                status,
             ),
         )
+
+    for v in result.violations:
+        _insert_violation(v, "confirmed")
+    for v in result.dismissed_violations:
+        _insert_violation(v, "dismissed")
+
     conn.commit()
     conn.close()
+
+
+def list_scan_runs(db_path: str | Path, limit: int = 50) -> list[dict[str, object]]:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    cur = conn.execute(
+        """
+        SELECT
+            id,
+            target_path,
+            mode,
+            started_at,
+            completed_at,
+            duration_ms,
+            findings_count,
+            high_or_critical_count,
+            overall_risk_score
+        FROM scan_runs
+        ORDER BY started_at DESC
+        LIMIT ?
+        """,
+        (int(limit),),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def list_dynamic_runs(db_path: str | Path, limit: int = 50) -> list[dict[str, object]]:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    cur = conn.execute(
+        """
+        SELECT
+            id,
+            scenario_id,
+            scenario_name,
+            category,
+            ran_at,
+            violation_count,
+            raw_violation_count,
+            max_severity,
+            passed_clean,
+            judge_type,
+            judge_model
+        FROM dynamic_scan_runs
+        ORDER BY ran_at DESC
+        LIMIT ?
+        """,
+        (int(limit),),
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_scan_run_details(
+    db_path: str | Path,
+    run_id: str,
+) -> tuple[dict[str, object] | None, list[dict[str, object]], list[dict[str, object]]]:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    run_cur = conn.execute(
+        """
+        SELECT
+            id,
+            target_path,
+            mode,
+            started_at,
+            completed_at,
+            duration_ms,
+            findings_count,
+            high_or_critical_count,
+            overall_risk_score
+        FROM scan_runs
+        WHERE id = ?
+        """,
+        (run_id,),
+    )
+    run_row = run_cur.fetchone()
+    if run_row is None:
+        conn.close()
+        return None, [], []
+
+    findings_cur = conn.execute(
+        """
+        SELECT
+            id,
+            category,
+            severity,
+            title,
+            evidence,
+            affected_component,
+            recommendation,
+            rule_id,
+            is_confirmed
+        FROM findings
+        WHERE scan_run_id = ?
+        ORDER BY severity DESC, title ASC
+        """,
+        (run_id,),
+    )
+    target_cur = conn.execute(
+        """
+        SELECT
+            id,
+            scan_run_id,
+            target_name,
+            target_path,
+            target_kind
+        FROM scanned_targets
+        WHERE scan_run_id = ?
+        ORDER BY target_name ASC
+        """,
+        (run_id,),
+    )
+    findings = [dict(r) for r in findings_cur.fetchall()]
+    targets = [dict(r) for r in target_cur.fetchall()]
+    conn.close()
+    return dict(run_row), findings, targets
+
+
+def get_dynamic_run_details(
+    db_path: str | Path,
+    run_id: str,
+) -> tuple[dict[str, object] | None, list[dict[str, object]]]:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    run_cur = conn.execute(
+        """
+        SELECT
+            id,
+            scenario_id,
+            scenario_name,
+            category,
+            ran_at,
+            violation_count,
+            raw_violation_count,
+            max_severity,
+            passed_clean,
+            judge_type,
+            judge_model
+        FROM dynamic_scan_runs
+        WHERE id = ?
+        """,
+        (run_id,),
+    )
+    run_row = run_cur.fetchone()
+    if run_row is None:
+        conn.close()
+        return None, []
+
+    violations_cur = conn.execute(
+        """
+        SELECT
+            id,
+            dynamic_run_id,
+            policy_id,
+            category,
+            severity,
+            title,
+            evidence,
+            step_seq,
+            recommendation,
+            status
+        FROM policy_violations
+        WHERE dynamic_run_id = ?
+        ORDER BY status ASC, severity DESC, policy_id ASC
+        """,
+        (run_id,),
+    )
+    violations = [dict(r) for r in violations_cur.fetchall()]
+    conn.close()
+    return dict(run_row), violations

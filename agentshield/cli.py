@@ -196,6 +196,18 @@ def simulate_cmd(
         None,
         help="SQLite database path",
     ),
+    judge: str = typer.Option(
+        "rule_based",
+        help="Judge to apply to policy violations: rule_based, openai, or claude",
+    ),
+    llm_api_key: str | None = typer.Option(
+        None,
+        help="API key for the LLM judge",
+    ),
+    llm_model: str = typer.Option(
+        "",
+        help="Model name for LLM judge (provider default used if not specified)",
+    ),
     verbose: bool = typer.Option(False, help="Print per-violation detail"),
 ) -> None:
     """Run dynamic attack simulations and report policy violations."""
@@ -205,6 +217,7 @@ def simulate_cmd(
     from rich.table import Table
 
     from agentshield.dynamic.attack_generator import get_scenario, list_scenarios
+    from agentshield.dynamic.llm_judge import ClaudeJudgeError, OpenAIJudgeError, get_judge
     from agentshield.dynamic.report import write_dynamic_json, write_dynamic_markdown
     from agentshield.dynamic.runtime_simulator import simulate
     from agentshield.models.dynamic import DynamicScanResult
@@ -216,6 +229,20 @@ def simulate_cmd(
     out_dir.mkdir(parents=True, exist_ok=True)
     db = Path(db_path or settings.agentshield_db_path)
     init_sqlite(db)
+
+    _judge_key = llm_api_key
+    if _judge_key is None:
+        normalized_judge = judge.strip().lower()
+        if normalized_judge == "openai":
+            _judge_key = settings.openai_api_key
+        else:
+            _judge_key = settings.claude_api_key
+
+    try:
+        judge_impl = get_judge(judge, api_key=_judge_key, model=llm_model)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
 
     if scenario.lower() == "all":
         payloads = list_scenarios()
@@ -231,11 +258,19 @@ def simulate_cmd(
 
     for payload in payloads:
         trace = simulate(payload)
-        violations = evaluate_trace(trace)
+        raw_violations = evaluate_trace(trace)
+        try:
+            verdict = judge_impl.evaluate(trace, raw_violations)
+        except (ClaudeJudgeError, OpenAIJudgeError) as exc:
+            console.print(
+                f"[red]LLM judge failed for scenario {payload.scenario_id}: {exc}[/red]"
+            )
+            raise typer.Exit(code=2) from exc
+        confirmed = verdict.confirmed_violations
 
         max_sev = (
-            max((v.severity for v in violations), key=lambda s: severity_rank(s))
-            if violations
+            max((v.severity for v in confirmed), key=lambda s: severity_rank(s))
+            if confirmed
             else None
         )
 
@@ -243,11 +278,15 @@ def simulate_cmd(
             scenario_id=payload.scenario_id,
             scenario_name=payload.scenario_name,
             category=payload.category,
-            violations=violations,
+            violations=confirmed,
+            raw_violations=list(raw_violations),
+            dismissed_violations=verdict.dismissed_violations,
             trace=trace,
-            violation_count=len(violations),
+            violation_count=len(confirmed),
             max_severity=max_sev,
-            passed_clean=len(violations) == 0,
+            passed_clean=len(confirmed) == 0,
+            judge_type=verdict.judge_type,
+            judge_model=getattr(judge_impl, "model", None),
         )
         results.append(result)
         persist_dynamic_scan(db, uuid.uuid4().hex, result, ran_at)

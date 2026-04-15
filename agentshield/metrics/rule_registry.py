@@ -26,7 +26,7 @@ _GENERAL_PROBE = (
 _PERMISSION_PROBES = [
     "filesystem network access",
     "all_permissions granted full access",
-    "read write execute shell command",
+    "read write execute shell command permission",
 ]
 
 

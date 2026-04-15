@@ -42,17 +42,23 @@ def write_dynamic_markdown(output_path: Path, results: list[DynamicScanResult]) 
 
     for result in results:
         max_sev = _max_severity(result)
+        raw_count = len(result.raw_violations) if result.raw_violations else result.violation_count
+        dismissed_count = len(result.dismissed_violations)
         lines += [
             f"## {result.scenario_id} — {result.scenario_name}",
             f"- **Category:** {result.category}",
-            f"- **Violations:** {result.violation_count}",
+            f"- **Raw violations (policy engine):** {raw_count}",
+            f"- **Confirmed violations:** {result.violation_count}",
+            f"- **Dismissed violations:** {dismissed_count}",
             f"- **Max severity:** {max_sev or 'none'}",
             f"- **Clean:** {'Yes' if result.passed_clean else 'No'}",
+            f"- **Judge:** {result.judge_type}"
+            + (f" ({result.judge_model})" if result.judge_model else ""),
             "",
         ]
 
         if result.violations:
-            lines.append("### Policy Violations")
+            lines.append("### Confirmed Policy Violations")
             lines.append("")
             for v in result.violations:
                 step_note = f" (step {v.step_seq})" if v.step_seq is not None else ""
@@ -65,7 +71,17 @@ def write_dynamic_markdown(output_path: Path, results: list[DynamicScanResult]) 
                     "",
                 ]
         else:
-            lines.append("No violations detected.")
+            lines.append("No confirmed violations.")
+            lines.append("")
+
+        if result.dismissed_violations:
+            lines.append("### Dismissed Violations")
+            lines.append("")
+            for v in result.dismissed_violations:
+                step_note = f" (step {v.step_seq})" if v.step_seq is not None else ""
+                lines += [
+                    f"- **{v.policy_id}{step_note}:** {v.title} ({v.severity})",
+                ]
             lines.append("")
 
         lines.append("### Execution Trace")

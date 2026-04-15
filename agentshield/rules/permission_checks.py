@@ -2,6 +2,15 @@ from .base import RuleResult
 
 _EVIDENCE_MAX = 240
 
+# These words indicate the text is describing a permission or capability
+# declaration rather than general prose. PERM-003 requires at least one to
+# be present so that incidental occurrences of "read" or "command" in
+# documentation or source code don't fire.
+_PERM_003_CONTEXT = [
+    "permission", "capability", "grant", "allow", "scope",
+    "storage", "disk", "privilege", "authorized", "credential", "auth",
+]
+
 
 def _clip(blob: str) -> str:
     b = blob.replace("\n", " ").strip()
@@ -37,8 +46,10 @@ def run_permission_checks(permission_blob: str) -> list[RuleResult]:
                 recommendation="Prefer explicit, minimal permission grants.",
             )
         )
-    elif ("read" in lowered or "write" in lowered) and (
-        "execute" in lowered or "shell" in lowered or "command" in lowered
+    elif (
+        ("read" in lowered or "write" in lowered)
+        and ("execute" in lowered or "shell" in lowered or "command" in lowered)
+        and any(ctx in lowered for ctx in _PERM_003_CONTEXT)
     ):
         findings.append(
             RuleResult(

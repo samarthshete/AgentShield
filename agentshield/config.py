@@ -9,5 +9,6 @@ class Settings(BaseSettings):
     agentshield_output_dir: str = "./reports"
     agentshield_log_level: str = "INFO"
     claude_api_key: str = ""
+    openai_api_key: str = ""
 
 settings = Settings()

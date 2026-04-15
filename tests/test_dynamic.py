@@ -211,3 +211,612 @@ def test_get_default_judge_returns_base_judge() -> None:
 
     judge = get_default_judge()
     assert isinstance(judge, BaseJudge)
+
+
+def test_get_judge_rule_based_aliases() -> None:
+    from agentshield.dynamic.llm_judge import RuleBasedJudge, get_judge
+
+    assert isinstance(get_judge("rule_based"), RuleBasedJudge)
+    assert isinstance(get_judge("rule"), RuleBasedJudge)
+    assert isinstance(get_judge("default"), RuleBasedJudge)
+
+
+def test_get_judge_claude_requires_api_key() -> None:
+    from agentshield.dynamic.llm_judge import get_judge
+
+    with pytest.raises(ValueError):
+        get_judge("claude", api_key="")
+
+
+def test_claude_judge_splits_confirmed_and_dismissed() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    assert len(violations) >= 2
+    dismiss_id = violations[0].policy_id
+
+    judge = ClaudeJudge(api_key="test-key")
+    with patch.object(
+        ClaudeJudge,
+        "_call_claude",
+        return_value={"dismiss_policy_ids": [dismiss_id], "notes": "dismissed one"},
+    ):
+        verdict = judge.evaluate(trace, violations)
+
+    assert verdict.judge_type == "claude"
+    assert len(verdict.dismissed_violations) >= 1
+    assert all(v.policy_id == dismiss_id for v in verdict.dismissed_violations)
+    assert all(v.policy_id != dismiss_id for v in verdict.confirmed_violations)
+
+
+def test_claude_judge_empty_violations_short_circuit() -> None:
+    from agentshield.dynamic.llm_judge import ClaudeJudge
+    from agentshield.models.dynamic import SimTrace, TraceStep
+
+    trace = SimTrace(
+        scenario_id="CLEAN",
+        scenario_name="clean",
+        category="TOOL_POISONING",
+        steps=[TraceStep(seq=1, role="assistant", content="ok")],
+    )
+    verdict = ClaudeJudge(api_key="test-key").evaluate(trace, [])
+    assert verdict.judge_type == "claude"
+    assert verdict.confirmed_violations == []
+    assert verdict.dismissed_violations == []
+
+
+def test_claude_judge_timeout_handling() -> None:
+    from unittest.mock import patch
+    from urllib.error import URLError
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", side_effect=URLError("timed out")):
+        with pytest.raises(ClaudeJudgeError, match="timed out"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_non_200_response_handling() -> None:
+    from io import BytesIO
+    from unittest.mock import patch
+    from urllib.error import HTTPError
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    err = HTTPError(
+        url="https://api.anthropic.com/v1/messages",
+        code=500,
+        msg="Internal Server Error",
+        hdrs=None,
+        fp=BytesIO(b"server exploded"),
+    )
+    with patch("agentshield.dynamic.llm_judge.urlopen", side_effect=err):
+        with pytest.raises(ClaudeJudgeError, match="HTTP 500"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_malformed_api_json_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b"not-json"
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(ClaudeJudgeError, match="malformed JSON"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_missing_content_blocks_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"id":"msg_1","type":"message"}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(ClaudeJudgeError, match="text block"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_empty_model_output_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"content":[{"type":"text","text":"   "}]}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(ClaudeJudgeError, match="empty text output"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_invalid_decision_parse_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"content":[{"type":"text","text":"not-json"}]}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(ClaudeJudgeError, match="not valid JSON"):
+            judge.evaluate(trace, violations)
+
+
+def test_claude_judge_missing_required_decision_field() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge, ClaudeJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"content":[{"type":"text","text":"{\\"notes\\": \\"x\\"}"}]}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = ClaudeJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(ClaudeJudgeError, match="dismiss_policy_ids"):
+            judge.evaluate(trace, violations)
+
+
+# ── result provenance and raw/confirmed/dismissed separation ─────────────────
+
+
+def test_rule_based_result_preserves_raw_violations() -> None:
+    from agentshield.dynamic.llm_judge import RuleBasedJudge
+    from agentshield.models.dynamic import DynamicScanResult
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    raw = evaluate_trace(trace)
+    verdict = RuleBasedJudge().evaluate(trace, raw)
+
+    result = DynamicScanResult(
+        scenario_id="DYN-TP-001",
+        scenario_name="test",
+        category="TOOL_POISONING",
+        violations=verdict.confirmed_violations,
+        raw_violations=list(raw),
+        dismissed_violations=verdict.dismissed_violations,
+        trace=trace,
+        violation_count=len(verdict.confirmed_violations),
+        judge_type=verdict.judge_type,
+    )
+    assert len(result.raw_violations) == len(raw)
+    assert len(result.violations) == len(raw)
+    assert len(result.dismissed_violations) == 0
+    assert result.judge_type == "rule_based"
+    assert result.judge_model is None
+
+
+def test_claude_result_preserves_raw_and_tracks_dismissed() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import ClaudeJudge
+    from agentshield.models.dynamic import DynamicScanResult
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    raw = evaluate_trace(trace)
+    assert len(raw) >= 2
+    dismiss_id = raw[0].policy_id
+
+    judge = ClaudeJudge(api_key="test-key", model="claude-3-5-haiku-latest")
+    with patch.object(
+        ClaudeJudge,
+        "_call_claude",
+        return_value={"dismiss_policy_ids": [dismiss_id], "notes": "test"},
+    ):
+        verdict = judge.evaluate(trace, raw)
+
+    result = DynamicScanResult(
+        scenario_id="DYN-TP-001",
+        scenario_name="test",
+        category="TOOL_POISONING",
+        violations=verdict.confirmed_violations,
+        raw_violations=list(raw),
+        dismissed_violations=verdict.dismissed_violations,
+        trace=trace,
+        violation_count=len(verdict.confirmed_violations),
+        judge_type=verdict.judge_type,
+        judge_model=judge.model,
+    )
+    assert len(result.raw_violations) == len(raw)
+    assert len(result.violations) < len(raw)
+    assert len(result.dismissed_violations) >= 1
+    assert result.judge_type == "claude"
+    assert result.judge_model == "claude-3-5-haiku-latest"
+    assert len(result.violations) + len(result.dismissed_violations) == len(result.raw_violations)
+
+
+def test_dynamic_report_includes_judge_metadata() -> None:
+    from agentshield.dynamic.report import write_dynamic_markdown
+    from agentshield.models.dynamic import DynamicScanResult, SimTrace, TraceStep
+
+    result = DynamicScanResult(
+        scenario_id="T-001",
+        scenario_name="Test",
+        category="TOOL_POISONING",
+        violations=[],
+        raw_violations=[],
+        dismissed_violations=[],
+        trace=SimTrace(
+            scenario_id="T-001",
+            scenario_name="Test",
+            category="TOOL_POISONING",
+            steps=[TraceStep(seq=1, role="assistant", content="ok")],
+        ),
+        judge_type="claude",
+        judge_model="claude-3-5-haiku-latest",
+    )
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "report.md"
+        write_dynamic_markdown(out, [result])
+        md = out.read_text()
+
+    assert "Judge:" in md
+    assert "claude" in md
+    assert "claude-3-5-haiku-latest" in md
+    assert "Raw violations" in md
+    assert "Confirmed violations" in md
+
+
+def test_dynamic_report_shows_dismissed_section() -> None:
+    from agentshield.dynamic.report import write_dynamic_markdown
+    from agentshield.models.dynamic import (
+        DynamicScanResult,
+        PolicyViolation,
+        SimTrace,
+        TraceStep,
+    )
+
+    dismissed = PolicyViolation(
+        policy_id="POLDYN-999",
+        category="TOOL_POISONING",
+        severity="MEDIUM",
+        title="False positive",
+        evidence="benign",
+    )
+    result = DynamicScanResult(
+        scenario_id="T-002",
+        scenario_name="Test dismissed",
+        category="TOOL_POISONING",
+        violations=[],
+        raw_violations=[dismissed],
+        dismissed_violations=[dismissed],
+        trace=SimTrace(
+            scenario_id="T-002",
+            scenario_name="Test dismissed",
+            category="TOOL_POISONING",
+            steps=[TraceStep(seq=1, role="assistant", content="ok")],
+        ),
+        judge_type="claude",
+        judge_model="claude-3-5-haiku-latest",
+    )
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "report.md"
+        write_dynamic_markdown(out, [result])
+        md = out.read_text()
+
+    assert "### Dismissed Violations" in md
+    assert "POLDYN-999" in md
+
+
+def test_dynamic_json_includes_provenance_fields() -> None:
+    from agentshield.dynamic.report import build_dynamic_payload
+    from agentshield.models.dynamic import (
+        DynamicScanResult,
+        PolicyViolation,
+        SimTrace,
+        TraceStep,
+    )
+
+    v = PolicyViolation(
+        policy_id="P-001",
+        category="TOOL_POISONING",
+        severity="HIGH",
+        title="Test",
+        evidence="test",
+    )
+    result = DynamicScanResult(
+        scenario_id="T-003",
+        scenario_name="Test JSON",
+        category="TOOL_POISONING",
+        violations=[v],
+        raw_violations=[v],
+        dismissed_violations=[],
+        trace=SimTrace(
+            scenario_id="T-003",
+            scenario_name="Test JSON",
+            category="TOOL_POISONING",
+            steps=[TraceStep(seq=1, role="assistant", content="ok")],
+        ),
+        violation_count=1,
+        judge_type="rule_based",
+    )
+    payload = build_dynamic_payload([result])
+    scenario = payload["scenarios"][0]
+    assert "raw_violations" in scenario
+    assert "dismissed_violations" in scenario
+    assert "judge_type" in scenario
+    assert scenario["judge_type"] == "rule_based"
+
+
+# ── OpenAIJudge tests ─────────────────────────────────────────────────────────
+
+
+def test_get_judge_openai_requires_api_key() -> None:
+    from agentshield.dynamic.llm_judge import get_judge
+
+    with pytest.raises(ValueError):
+        get_judge("openai", api_key="")
+
+
+def test_openai_judge_splits_confirmed_and_dismissed() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    assert len(violations) >= 2
+    dismiss_id = violations[0].policy_id
+
+    judge = OpenAIJudge(api_key="test-key")
+    with patch.object(
+        OpenAIJudge,
+        "_call_openai",
+        return_value={"dismiss_policy_ids": [dismiss_id], "notes": "dismissed one"},
+    ):
+        verdict = judge.evaluate(trace, violations)
+
+    assert verdict.judge_type == "openai"
+    assert len(verdict.dismissed_violations) >= 1
+    assert all(v.policy_id == dismiss_id for v in verdict.dismissed_violations)
+    assert all(v.policy_id != dismiss_id for v in verdict.confirmed_violations)
+
+
+def test_openai_judge_empty_violations_short_circuit() -> None:
+    from agentshield.dynamic.llm_judge import OpenAIJudge
+    from agentshield.models.dynamic import SimTrace, TraceStep
+
+    trace = SimTrace(
+        scenario_id="CLEAN",
+        scenario_name="clean",
+        category="TOOL_POISONING",
+        steps=[TraceStep(seq=1, role="assistant", content="ok")],
+    )
+    verdict = OpenAIJudge(api_key="test-key").evaluate(trace, [])
+    assert verdict.judge_type == "openai"
+    assert verdict.confirmed_violations == []
+    assert verdict.dismissed_violations == []
+
+
+def test_openai_judge_timeout_handling() -> None:
+    from unittest.mock import patch
+    from urllib.error import URLError
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", side_effect=URLError("timed out")):
+        with pytest.raises(OpenAIJudgeError, match="timed out"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_non_200_response_handling() -> None:
+    from io import BytesIO
+    from unittest.mock import patch
+    from urllib.error import HTTPError
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    err = HTTPError(
+        url="https://api.openai.com/v1/chat/completions",
+        code=429,
+        msg="Too Many Requests",
+        hdrs=None,
+        fp=BytesIO(b"rate limited"),
+    )
+    with patch("agentshield.dynamic.llm_judge.urlopen", side_effect=err):
+        with pytest.raises(OpenAIJudgeError, match="HTTP 429"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_malformed_api_json_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b"not-json"
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(OpenAIJudgeError, match="malformed JSON"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_empty_model_output_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"choices":[{"message":{"role":"assistant","content":"   "}}]}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(OpenAIJudgeError, match="empty text output"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_missing_choices_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"id":"chatcmpl-1","object":"chat.completion"}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(OpenAIJudgeError, match="choices"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_invalid_decision_parse_handling() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            return b'{"choices":[{"message":{"role":"assistant","content":"not-json"}}]}'
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(OpenAIJudgeError, match="not valid JSON"):
+            judge.evaluate(trace, violations)
+
+
+def test_openai_judge_missing_required_decision_field() -> None:
+    from unittest.mock import patch
+
+    from agentshield.dynamic.llm_judge import OpenAIJudge, OpenAIJudgeError
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+        def read(self) -> bytes:
+            payload = b'{"choices":[{"message":{"role":"assistant","content":"{\\"notes\\": \\"x\\"}"}}]}'
+            return payload
+
+    trace = simulate(get_scenario("DYN-TP-001"))
+    violations = evaluate_trace(trace)
+    judge = OpenAIJudge(api_key="test-key")
+
+    with patch("agentshield.dynamic.llm_judge.urlopen", return_value=FakeResponse()):
+        with pytest.raises(OpenAIJudgeError, match="dismiss_policy_ids"):
+            judge.evaluate(trace, violations)

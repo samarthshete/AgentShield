@@ -5,6 +5,7 @@ PROJECT.md
 CURRENT_STATE.md
 TASK.md
 DECISIONS.md
+UNDERSTANDING.md
 
 # Python / virtualenv
 __pycache__/
@@ -37,6 +38,10 @@ agentshield-reports/
 # Build artifacts
 build/
 dist/
+node_modules/
+web/node_modules/
+web/dist/
+*.tsbuildinfo
 *.egg-info/
 
 # Editor / OS junk
