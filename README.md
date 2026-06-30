@@ -182,7 +182,9 @@ The API client resolves connection settings per request:
 3. Default API base URL `http://127.0.0.1:8000` and no token
 
 When `AGENTSHIELD_API_TOKEN` is set on the backend, put the same token in the
-Settings page or `web/.env` as `VITE_API_TOKEN`.
+Settings page or `web/.env` as `VITE_API_TOKEN`. For containerized web builds,
+prefer entering the token in Settings so the secret is not baked into the static
+bundle; `VITE_API_BASE_URL` remains available as an optional build-time default.
 
 Dashboard status (F3):
 - Uses live backend APIs (`/api/metrics`, `/api/history/scans`, `/api/history/dynamic`)

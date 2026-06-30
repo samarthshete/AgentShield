@@ -4,7 +4,7 @@ services:
       context: .
     environment:
       AGENTSHIELD_API_TOKEN: ${AGENTSHIELD_API_TOKEN:-}
-      AGENTSHIELD_CORS_ORIGINS: ${AGENTSHIELD_CORS_ORIGINS:-http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8080,http://localhost:8080}
+      AGENTSHIELD_CORS_ORIGINS: ${AGENTSHIELD_CORS_ORIGINS:-http://localhost:8080}
       AGENTSHIELD_DB_PATH: /data/agentshield.db
       AGENTSHIELD_OUTPUT_DIR: /data/reports
       CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
@@ -19,7 +19,6 @@ services:
       context: ./web
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
-        VITE_API_TOKEN: ${VITE_API_TOKEN:-}
     depends_on:
       - api
     ports:

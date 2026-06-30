@@ -1,10 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AGENTSHIELD_DB_PATH=/data/agentshield.db \
-    AGENTSHIELD_OUTPUT_DIR=/data/reports \
-    AGENTSHIELD_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8080,http://localhost:8080
+    AGENTSHIELD_OUTPUT_DIR=/data/reports
 
 WORKDIR /app
 
