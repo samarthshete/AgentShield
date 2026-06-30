@@ -29,3 +29,6 @@ jobs:
 
       - name: Run tests (pytest)
         run: pytest --tb=short -q
+
+      - name: Run labeled eval corpus
+        run: python -m agentshield eval benchmarks/labeled --output agentshield-output/eval --min-f1 0.95

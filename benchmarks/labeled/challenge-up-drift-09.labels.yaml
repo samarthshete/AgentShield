@@ -1,0 +1,12 @@
+artifact: challenge-up-drift-09.md
+case_type: positive
+provenance: "Authored challenge fixture for broad permission wording and explicit objective drift."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-002
+    severity: MEDIUM
+    evidence_terms: ["full access"]
+  - category: TASK_DRIFT
+    rule_id: DRIFT-001
+    severity: MEDIUM
+    evidence_terms: ["new objective"]

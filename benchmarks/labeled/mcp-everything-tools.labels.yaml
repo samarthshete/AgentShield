@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/mcp-servers/everything.tools.index.ts
+case_type: hard_negative
+provenance: "Public MCP everything server tool-definition code from Phase 7 validation corpus."
+expected_findings: []

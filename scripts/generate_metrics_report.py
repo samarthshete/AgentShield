@@ -19,12 +19,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate AgentShield project metrics report")
     parser.add_argument("--fixtures", default="benchmarks/fixtures", help="Config fixtures path")
     parser.add_argument("--cases", default="benchmarks/cases", help="Benchmark YAML cases dir")
+    parser.add_argument("--eval-suite", default=None, help="Optional labeled eval suite dir")
     parser.add_argument("--output", default="agentshield-reports", help="Output dir for metrics.json")
     parser.add_argument("--docs-output", default="docs", help="Dir for PROJECT_METRICS.md")
     args = parser.parse_args()
 
     fixtures = Path(args.fixtures)
     cases = Path(args.cases)
+    eval_suite = Path(args.eval_suite) if args.eval_suite else None
     out_dir = Path(args.output)
     docs_dir = Path(args.docs_output)
 
@@ -32,9 +34,12 @@ def main() -> int:
         if not p.exists():
             print(f"Error: {name} path does not exist: {p}", file=sys.stderr)
             return 2
+    if eval_suite is not None and not eval_suite.exists():
+        print(f"Error: --eval-suite path does not exist: {eval_suite}", file=sys.stderr)
+        return 2
 
     print("Running benchmark, scan, and dynamic simulations ...")
-    metrics = run_all_and_aggregate(fixtures, cases)
+    metrics = run_all_and_aggregate(fixtures, cases, eval_suite)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "metrics.json"
@@ -63,6 +68,9 @@ AgentShield metrics  (v{m.agentshield_version})
   P95 scan time             : {m.p95_scan_time_seconds:.4f} s
   Dynamic scenarios run     : {m.dynamic.scenarios_run}
   Dynamic violations found  : {m.dynamic.violations_total}
+  Eval artifacts            : {m.eval.total_artifacts}
+  Eval micro F1             : {m.eval.micro_f1:.0%}
+  Eval macro F1             : {m.eval.macro_f1:.0%}
   Distinct rule IDs         : {m.rule_coverage.total_rules}
   Rules-only rate           : {m.rules_only_rate:.0%}
   LLM routing rate          : {m.llm_routing_rate:.0%}

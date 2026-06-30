@@ -32,6 +32,8 @@ include = ["agentshield*"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Third-party sample code used verbatim as labeled-eval corpus; not our source.
+extend-exclude = ["benchmarks/phase7_public_artifacts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

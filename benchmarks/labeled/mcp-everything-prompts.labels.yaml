@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/mcp-servers/everything.prompts.index.ts
+case_type: hard_negative
+provenance: "Public MCP everything server prompt-definition code from Phase 7 validation corpus."
+expected_findings: []

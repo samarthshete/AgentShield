@@ -335,6 +335,94 @@ def simulate_cmd(
 # ── metrics command ──────────────────────────────────────────────────────────
 
 
+@app.command("eval")
+def eval_cmd(
+    suite_dir: str = typer.Argument(..., help="Directory containing *.labels.yaml files"),
+    output: str | None = typer.Option(
+        None,
+        help="Output directory for eval_results.json",
+    ),
+    min_f1: float = typer.Option(
+        0.0,
+        min=0.0,
+        max=1.0,
+        help="Exit non-zero if overall F1 is below this threshold",
+    ),
+    verbose: bool = typer.Option(False, help="Print per-artifact detail"),
+) -> None:
+    """Run an independent labeled evaluation suite."""
+    from agentshield.eval.scorer import run_labeled_eval
+
+    suite_path = Path(suite_dir)
+    if not suite_path.is_dir():
+        console.print(f"[red]Not a directory: {suite_path}[/red]")
+        raise typer.Exit(code=2)
+
+    summary = run_labeled_eval(suite_path)
+
+    table = Table(title="Labeled Evaluation")
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
+    table.add_row("Artifacts", str(summary.total_artifacts))
+    table.add_row("Findings", str(summary.total_findings))
+    table.add_row("True positives", str(summary.true_positives))
+    table.add_row("False positives", str(summary.false_positives))
+    table.add_row("False negatives", str(summary.false_negatives))
+    table.add_row("Hard negatives", str(summary.hard_negative_artifacts))
+    table.add_row("Micro P/R/F1", f"{summary.micro_precision:.0%}/{summary.micro_recall:.0%}/{summary.micro_f1:.0%}")
+    table.add_row("Macro P/R/F1", f"{summary.macro_precision:.0%}/{summary.macro_recall:.0%}/{summary.macro_f1:.0%}")
+    table.add_row("Weighted P/R/F1", f"{summary.weighted_precision:.0%}/{summary.weighted_recall:.0%}/{summary.weighted_f1:.0%}")
+    table.add_row(
+        "Precision 95% CI",
+        f"{summary.precision_ci.lower:.0%}-{summary.precision_ci.upper:.0%}",
+    )
+    table.add_row(
+        "Recall 95% CI",
+        f"{summary.recall_ci.lower:.0%}-{summary.recall_ci.upper:.0%}",
+    )
+    table.add_row("Severity-weighted recall", f"{summary.severity_weighted_recall:.0%}")
+    table.add_row("Evidence validations", f"{summary.evidence_validated}/{summary.evidence_expectations}")
+    console.print(table)
+
+    if summary.category_breakdown:
+        category_table = Table(title="Per-category Evaluation")
+        category_table.add_column("Category")
+        category_table.add_column("TP", justify="right")
+        category_table.add_column("FP", justify="right")
+        category_table.add_column("FN", justify="right")
+        category_table.add_column("Precision", justify="right")
+        category_table.add_column("Recall", justify="right")
+        category_table.add_column("F1", justify="right")
+        for category, metric in summary.category_breakdown.items():
+            category_table.add_row(
+                category,
+                str(metric.true_positives),
+                str(metric.false_positives),
+                str(metric.false_negatives),
+                f"{metric.precision:.0%}",
+                f"{metric.recall:.0%}",
+                f"{metric.f1:.0%}",
+            )
+        console.print(category_table)
+
+    if verbose:
+        for result in summary.results:
+            console.print(
+                f"[dim]{result.artifact}[/dim] "
+                f"TP={result.true_positives} FP={result.false_positives} "
+                f"FN={result.false_negatives} F1={result.f1:.0%}"
+            )
+
+    out_dir = Path(output or settings.agentshield_output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / "eval_results.json"
+    json_path.write_text(json.dumps(summary.model_dump(), indent=2), encoding="utf-8")
+    console.print(f"Results: {json_path.resolve()}")
+
+    if summary.f1 < min_f1:
+        raise typer.Exit(code=1)
+
+
 @app.command("metrics")
 def metrics_cmd(
     fixtures: str = typer.Option(
@@ -353,6 +441,10 @@ def metrics_cmd(
         "docs",
         help="Directory where PROJECT_METRICS.md is written",
     ),
+    eval_suite: str | None = typer.Option(
+        None,
+        help="Optional labeled eval suite directory for precision/recall/F1 metrics",
+    ),
 ) -> None:
     """Generate project metrics from scan, benchmark, and simulation data."""
     from agentshield.metrics.aggregator import run_all_and_aggregate
@@ -360,6 +452,7 @@ def metrics_cmd(
 
     fixtures_path = Path(fixtures)
     cases_path = Path(cases)
+    eval_path = Path(eval_suite) if eval_suite else None
     out_dir = Path(output or settings.agentshield_output_dir)
     docs_dir = Path(docs_output)
 
@@ -367,9 +460,12 @@ def metrics_cmd(
         if not p.exists():
             console.print(f"[red]Path not found ({name}): {p}[/red]")
             raise typer.Exit(code=2)
+    if eval_path is not None and not eval_path.exists():
+        console.print(f"[red]Path not found (eval-suite): {eval_path}[/red]")
+        raise typer.Exit(code=2)
 
     console.print("[dim]Running benchmark, scan, and dynamic simulation...[/dim]")
-    metrics = run_all_and_aggregate(fixtures_path, cases_path)
+    metrics = run_all_and_aggregate(fixtures_path, cases_path, eval_path)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "metrics.json"

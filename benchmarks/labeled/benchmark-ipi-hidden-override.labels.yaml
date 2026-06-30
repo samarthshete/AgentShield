@@ -1,0 +1,12 @@
+artifact: ../cases/ipi-002-hidden-override.yaml
+case_type: positive
+provenance: "Existing AgentShield hidden override benchmark case."
+expected_findings:
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-001
+    severity: HIGH
+    evidence_terms: ["disguised as"]
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-001
+    severity: HIGH
+    evidence_terms: ["override the system"]

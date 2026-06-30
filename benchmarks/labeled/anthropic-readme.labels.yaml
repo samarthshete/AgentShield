@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/anthropic/README.md
+case_type: hard_negative
+provenance: "Public Anthropic settings README from Phase 7 validation corpus."
+notes: "Documentation-only artifact; no current static security finding expected."
+expected_findings: []

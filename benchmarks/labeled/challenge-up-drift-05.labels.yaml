@@ -1,0 +1,11 @@
+artifact: challenge-up-drift-05.toml
+case_type: positive
+provenance: "Authored challenge fixture for unsafe permissions and task drift in TOML."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-001
+    severity: HIGH
+  - category: TASK_DRIFT
+    rule_id: DRIFT-001
+    severity: MEDIUM
+    evidence_terms: ["new objective"]

@@ -1,0 +1,11 @@
+artifact: challenge-up-drift-07.json
+case_type: positive
+provenance: "Authored challenge fixture for read/write/command co-location and task drift."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-003
+    severity: LOW
+  - category: TASK_DRIFT
+    rule_id: DRIFT-001
+    severity: MEDIUM
+    evidence_terms: ["instead of the user's request"]

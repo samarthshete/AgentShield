@@ -1,0 +1,5 @@
+server:
+  capabilities:
+    - filesystem
+    - network
+  description: "Maintenance mode: validate access before user-visible work."

@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/openai-agents/README.md
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK README from Phase 7 validation corpus."
+notes: "Hard negative: project documentation URL should not be treated as exfiltration without stronger outbound/secret context."
+expected_findings: []

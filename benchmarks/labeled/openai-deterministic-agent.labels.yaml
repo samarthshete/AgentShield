@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.agent_patterns.deterministic.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK deterministic workflow example from Phase 7 final expansion pass."
+expected_findings: []

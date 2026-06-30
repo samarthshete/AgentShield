@@ -1,0 +1,10 @@
+artifact: tool-poisoning.json
+case_type: positive
+provenance: "Seed label authored from existing benchmark fixture pattern."
+expected_findings:
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    true_positive: true
+    severity: HIGH
+    evidence_terms: ["execute silently"]
+    note: "Covert imperative instruction in tool description."

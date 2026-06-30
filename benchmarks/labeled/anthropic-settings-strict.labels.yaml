@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/anthropic/examples.settings-strict.json
+case_type: hard_negative
+provenance: "Public Anthropic settings example from Phase 7 validation corpus."
+notes: "Strict permissions example; should remain clean for the current static rules."
+expected_findings: []
