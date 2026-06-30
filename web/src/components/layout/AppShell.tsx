@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+
+import { checkHealth } from "../../lib/api";
 
 type NavItem = {
   label: string;
@@ -25,13 +27,36 @@ function navItemClass(isActive: boolean): string {
   ].join(" ");
 }
 
+function connectionIndicatorClass(status: "checking" | "reachable" | "offline"): string {
+  if (status === "reachable") {
+    return "bg-emerald-500";
+  }
+  if (status === "offline") {
+    return "bg-slate-300";
+  }
+  return "bg-sky-400";
+}
+
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "reachable" | "offline">("checking");
   const location = useLocation();
   const activeLabel = useMemo(
     () => NAV_ITEMS.find((item) => item.path === location.pathname)?.label ?? "Console",
     [location.pathname]
   );
+
+  useEffect(() => {
+    let active = true;
+    void checkHealth().then((status) => {
+      if (active) {
+        setConnectionStatus(status);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen text-[var(--fg)]">
@@ -53,9 +78,18 @@ export function AppShell() {
               <p className="text-xs text-[var(--muted)]">{activeLabel}</p>
             </div>
           </div>
-          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
-            <span className="hidden sm:inline">Local Console</span>
-            <span className="sm:hidden">Local</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
+            <span className={`h-2 w-2 rounded-full ${connectionIndicatorClass(connectionStatus)}`} />
+            <span className="hidden sm:inline">
+              {connectionStatus === "reachable"
+                ? "API reachable"
+                : connectionStatus === "offline"
+                  ? "API offline"
+                  : "Checking API"}
+            </span>
+            <span className="sm:hidden">
+              {connectionStatus === "reachable" ? "API" : connectionStatus === "offline" ? "Off" : "..."}
+            </span>
           </span>
         </div>
       </header>

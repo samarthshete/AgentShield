@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PageContainer } from "../components/layout/PageContainer";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
+import { ErrorState } from "../components/ui/ErrorState";
 import { checkAuth, checkHealth } from "../lib/api";
 import { getApiBaseUrl, getApiToken, setApiBaseUrl, setApiToken } from "../lib/settings";
 
@@ -24,10 +25,27 @@ function statusBadge(status: ConnectionStatus) {
   return <Badge variant="neutral">not checked</Badge>;
 }
 
+function statusLine(status: ConnectionStatus): string {
+  if (status === "reachable") {
+    return "● reachable";
+  }
+  if (status === "unauthorized") {
+    return "○ 401";
+  }
+  if (status === "offline") {
+    return "○ offline";
+  }
+  if (status === "checking") {
+    return "○ checking";
+  }
+  return "○ not checked";
+}
+
 export function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrlInput] = useState(() => getApiBaseUrl());
   const [apiToken, setApiTokenInput] = useState(() => getApiToken());
   const [status, setStatus] = useState<ConnectionStatus>("idle");
+  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const saveSettings = () => {
@@ -38,15 +56,23 @@ export function SettingsPage() {
 
   const checkConnection = async () => {
     setSaved(false);
+    setError(null);
     saveSettings();
     setStatus("checking");
     const healthStatus = await checkHealth();
     if (healthStatus === "offline") {
       setStatus("offline");
+      setError("The API health endpoint is offline. Check the base URL and backend process.");
       return;
     }
 
-    setStatus(await checkAuth());
+    const authStatus = await checkAuth();
+    setStatus(authStatus);
+    if (authStatus === "unauthorized") {
+      setError("The API is reachable, but the token was rejected with 401.");
+    } else if (authStatus === "offline") {
+      setError("The API became unreachable while checking authenticated access.");
+    }
   };
 
   return (
@@ -99,17 +125,25 @@ export function SettingsPage() {
                 onClick={() => void checkConnection()}
                 type="button"
               >
-                Check Connection
+                Test connection
               </button>
               {saved ? <span className="text-xs text-[var(--muted)]">Saved locally</span> : null}
             </div>
+
+            {error ? (
+              <ErrorState
+                message={error}
+                onRetry={() => void checkConnection()}
+                retryLabel="Test again"
+              />
+            ) : null}
           </div>
         </Card>
 
         <Card title="Connection Status">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <span>API</span>
+              <span className="font-medium text-[var(--fg)]">{statusLine(status)}</span>
               {statusBadge(status)}
             </div>
             <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--muted)]">
