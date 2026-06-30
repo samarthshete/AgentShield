@@ -3,11 +3,15 @@ import type { ReactNode } from "react";
 type BadgeVariant = "neutral" | "info" | "success" | "warning" | "danger";
 
 const STYLES: Record<BadgeVariant, string> = {
-  neutral: "border-slate-300 bg-slate-100 text-slate-700",
-  info: "border-sky-300 bg-sky-100 text-sky-700",
-  success: "border-emerald-300 bg-emerald-100 text-emerald-700",
-  warning: "border-amber-300 bg-amber-100 text-amber-700",
-  danger: "border-rose-300 bg-rose-100 text-rose-700",
+  neutral:
+    "border-[var(--sev-info-bd)] bg-[var(--sev-info-bg)] text-[var(--sev-info-fg)]",
+  info: "border-[var(--sev-low-bd)] bg-[var(--sev-low-bg)] text-[var(--sev-low-fg)]",
+  success:
+    "border-[var(--sev-clean-bd)] bg-[var(--sev-clean-bg)] text-[var(--sev-clean-fg)]",
+  warning:
+    "border-[var(--sev-high-bd)] bg-[var(--sev-high-bg)] text-[var(--sev-high-fg)]",
+  danger:
+    "border-[var(--sev-critical-bd)] bg-[var(--sev-critical-bg)] text-[var(--sev-critical-fg)]",
 };
 
 type BadgeProps = {
@@ -22,4 +26,3 @@ export function Badge({ variant = "neutral", children }: BadgeProps) {
     </span>
   );
 }
-

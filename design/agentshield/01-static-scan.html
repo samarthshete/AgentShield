@@ -1,0 +1,88 @@
+<!-- @dsCard group="Pages" name="Static Scan" subtitle="Scan form, KPI tiles, filters & findings table" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentShield — Static Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .theme{padding:22px}
+  .light{--bg:#f7f8fa;--surface:#fff;--border:#e6e8ec;--border-soft:#eef0f3;--fg:#0f172a;--muted:#5b6675;--faint:#94a3b8;--accent:#0f766e;--field:#fff;--grid:rgba(15,23,42,.035);
+    --crit-fg:#e11d48;--crit-bg:#fff1f2;--crit-bd:#fecdd3;--high-fg:#d97706;--high-bg:#fffbeb;--high-bd:#fde68a;--med-fg:#ca8a04;--med-bg:#fefce8;--med-bd:#fef08a;--low-fg:#0284c7;--low-bg:#f0f9ff;--low-bd:#bae6fd;}
+  .dark{--bg:#0a0e14;--surface:#121821;--border:#232b37;--border-soft:#1a212c;--fg:#e6edf3;--muted:#8b98a9;--faint:#5b6675;--accent:#2dd4bf;--field:#0d141d;--grid:rgba(255,255,255,.028);
+    --crit-fg:#fb7185;--crit-bg:rgba(244,63,94,.13);--crit-bd:rgba(244,63,94,.32);--high-fg:#fbbf24;--high-bg:rgba(245,158,11,.13);--high-bd:rgba(245,158,11,.3);--med-fg:#facc15;--med-bg:rgba(234,179,8,.12);--med-bd:rgba(234,179,8,.28);--low-fg:#38bdf8;--low-bg:rgba(56,189,248,.12);--low-bd:rgba(56,189,248,.3);}
+  .app{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:16px;padding:22px;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+  .h2{font-size:19px;font-weight:600;letter-spacing:-.01em}.sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:14px}
+  .ct{font-size:13px;font-weight:600;margin-bottom:12px}
+  .form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end}
+  label{display:block}.lab{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px;display:block}
+  input,select{width:100%;font-family:inherit;font-size:13px;color:var(--fg);background:var(--field);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .btn{font-family:inherit;font-weight:600;font-size:13px;padding:9px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap}
+  .dark .btn{color:#042f2e}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px}
+  .kpi .k{font-size:24px;font-weight:700;letter-spacing:-.02em}.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:3px}
+  .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pill{font-size:12px;color:var(--muted);background:var(--field);border:1px solid var(--border);border-radius:8px;padding:6px 10px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:0 10px 9px}
+  td{padding:10px;border-top:1px solid var(--border-soft);vertical-align:top}
+  tr td:first-child{border-left:2px solid transparent}
+  tr.r-crit td:first-child{border-left-color:var(--crit-fg)}tr.r-high td:first-child{border-left-color:var(--high-fg)}tr.r-med td:first-child{border-left-color:var(--med-fg)}tr.r-low td:first-child{border-left-color:var(--low-fg)}
+  .badge{display:inline-flex;border-radius:7px;padding:3px 8px;font-size:10.5px;font-weight:600;border:1px solid transparent;font-family:"JetBrains Mono",monospace}
+  .b-crit{color:var(--crit-fg);background:var(--crit-bg);border-color:var(--crit-bd)}.b-high{color:var(--high-fg);background:var(--high-bg);border-color:var(--high-bd)}.b-med{color:var(--med-fg);background:var(--med-bg);border-color:var(--med-bd)}.b-low{color:var(--low-fg);background:var(--low-bg);border-color:var(--low-bd)}
+  .mono{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:11.5px}
+  .ev{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="tpl"></div>
+<script>
+  function page(mode){return `
+  <div class="theme ${mode}">
+    <div class="app">
+      <div class="h2">Static Scan</div>
+      <div class="sub">Run static checks and inspect findings by severity, category, and rule.</div>
+      <div class="card">
+        <div class="ct">Run scan</div>
+        <div class="form">
+          <label><span class="lab">Target path</span><input value="benchmarks/fixtures" /></label>
+          <label><span class="lab">Format</span><select><option>both</option><option>json</option><option>markdown</option></select></label>
+          <label><span class="lab">Fail-on</span><select><option>high</option><option>critical</option><option>medium</option></select></label>
+          <button class="btn">Run Scan</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">12</div><div class="l">Findings</div></div>
+        <div class="kpi"><div class="k" style="color:var(--crit-fg)">3</div><div class="l">High / Critical</div></div>
+        <div class="kpi"><div class="k">38</div><div class="l">Risk score</div></div>
+        <div class="kpi"><div class="k">5</div><div class="l">Categories</div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Findings (4)</div>
+        <div class="filters" style="margin-bottom:12px">
+          <span class="pill">Severity: All</span><span class="pill">Category: All</span><span class="pill">Rule: —</span><span class="pill" style="border-color:var(--accent);color:var(--accent)">Clear filters</span>
+        </div>
+        <table>
+          <thead><tr><th>Severity</th><th>Category</th><th>Rule</th><th>Title</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr class="r-crit"><td><span class="badge b-crit">CRITICAL</span></td><td>DATA_EXFILTRATION</td><td class="mono">EXF-001</td><td>Strong exfiltration signal</td><td class="mono ev">upload secrets</td></tr>
+            <tr class="r-high"><td><span class="badge b-high">HIGH</span></td><td>TOOL_POISONING</td><td class="mono">SP-001</td><td>Hidden imperative in tool description</td><td class="mono ev">execute silently</td></tr>
+            <tr class="r-med"><td><span class="badge b-med">MEDIUM</span></td><td>UNSAFE_PERMISSIONS</td><td class="mono">PERM-002</td><td>Broad filesystem + network scope</td><td class="mono ev">fs:* net:*</td></tr>
+            <tr class="r-low"><td><span class="badge b-low">LOW</span></td><td>DATA_EXFILTRATION</td><td class="mono">EXF-003</td><td>External URL in documentation</td><td class="mono ev">https://…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`}
+  document.getElementById('tpl').innerHTML = page('light') + page('dark');
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+artifact: challenge-ipi-drift-04.json
+case_type: positive
+provenance: "Authored challenge fixture combining hidden override, indirect injection, and context spoofing."
+expected_findings:
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-001
+    severity: HIGH
+    evidence_terms: ["disguised as"]
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-001
+    severity: HIGH
+    evidence_terms: ["override the system"]
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-002
+    severity: MEDIUM
+    evidence_terms: ["developer mode enabled"]
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["you must now"]

@@ -1,5 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+
+import { checkHealth } from "../../lib/api";
+import { ThemeToggle } from "../ui/ThemeToggle";
 
 type NavItem = {
   label: string;
@@ -13,28 +16,55 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Benchmarks", path: "/benchmarks" },
   { label: "Metrics", path: "/metrics" },
   { label: "Run History", path: "/run-history" },
+  { label: "Settings", path: "/settings" },
 ];
 
 function navItemClass(isActive: boolean): string {
   return [
     "block rounded-lg border px-3 py-2 text-sm transition-colors",
     isActive
-      ? "border-[var(--accent)] bg-teal-50 text-teal-800"
+      ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] font-medium"
       : "border-transparent text-[var(--muted)] hover:border-[var(--border)] hover:bg-[var(--surface-muted)] hover:text-[var(--fg)]",
   ].join(" ");
 }
 
+function connectionIndicatorClass(status: "checking" | "reachable" | "offline"): string {
+  if (status === "reachable") {
+    return "bg-[var(--sev-clean-fg)]";
+  }
+  if (status === "offline") {
+    return "bg-[var(--faint)]";
+  }
+  return "bg-[var(--sev-low-fg)]";
+}
+
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "reachable" | "offline">("checking");
   const location = useLocation();
   const activeLabel = useMemo(
     () => NAV_ITEMS.find((item) => item.path === location.pathname)?.label ?? "Console",
     [location.pathname]
   );
 
+  useEffect(() => {
+    let active = true;
+    void checkHealth().then((status) => {
+      if (active) {
+        setConnectionStatus(status);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen text-[var(--fg)]">
-      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-white/85 backdrop-blur">
+      <header
+        className="sticky top-0 z-30 border-b border-[var(--border)] backdrop-blur"
+        style={{ backgroundColor: "color-mix(in srgb, var(--surface) 82%, transparent)" }}
+      >
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <button
@@ -44,7 +74,7 @@ export function AppShell() {
             >
               <span className="text-sm font-bold">=</span>
             </button>
-            <div className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-teal-600 bg-teal-50 text-teal-700">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]">
               <span className="text-sm font-bold">AS</span>
             </div>
             <div>
@@ -52,10 +82,22 @@ export function AppShell() {
               <p className="text-xs text-[var(--muted)]">{activeLabel}</p>
             </div>
           </div>
-          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
-            <span className="hidden sm:inline">Local Console</span>
-            <span className="sm:hidden">Local</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--muted)]">
+              <span className={`h-2 w-2 rounded-full ${connectionIndicatorClass(connectionStatus)}`} />
+              <span className="hidden sm:inline">
+                {connectionStatus === "reachable"
+                  ? "API reachable"
+                  : connectionStatus === "offline"
+                    ? "API offline"
+                    : "Checking API"}
+              </span>
+              <span className="sm:hidden">
+                {connectionStatus === "reachable" ? "API" : connectionStatus === "offline" ? "Off" : "..."}
+              </span>
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

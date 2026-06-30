@@ -169,7 +169,7 @@ export function StaticScanPage() {
           <label className="md:col-span-2">
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Target Path</span>
             <input
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={targetPath}
               onChange={(event) => setTargetPath(event.target.value)}
               placeholder="benchmarks/fixtures"
@@ -180,7 +180,7 @@ export function StaticScanPage() {
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Output Format</span>
             <select
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={outputFormat}
               onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}
             >
@@ -193,7 +193,7 @@ export function StaticScanPage() {
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Fail-On Severity</span>
             <select
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={failOn}
               onChange={(event) => setFailOn(event.target.value as FailOnSeverity)}
             >
@@ -216,7 +216,7 @@ export function StaticScanPage() {
 
           <div className="md:col-span-2">
             <button
-              className="rounded-md border border-teal-700 bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-[var(--accent)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-fg)] hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               type="submit"
               disabled={loading}
             >
@@ -311,7 +311,7 @@ export function StaticScanPage() {
               <label>
                 <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Severity</span>
                 <select
-                  className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
                 >
@@ -327,7 +327,7 @@ export function StaticScanPage() {
               <label>
                 <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Category</span>
                 <select
-                  className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
                 >
@@ -343,7 +343,7 @@ export function StaticScanPage() {
               <label>
                 <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Rule ID</span>
                 <input
-                  className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
                   placeholder="EXF-001"
                   value={ruleFilter}
                   onChange={(event) => setRuleFilter(event.target.value)}
@@ -352,7 +352,7 @@ export function StaticScanPage() {
             </div>
             <div className="mt-3">
               <button
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] hover:bg-white"
+                className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] hover:bg-[var(--field)]"
                 onClick={() => {
                   setSeverityFilter("ALL");
                   setCategoryFilter("ALL");

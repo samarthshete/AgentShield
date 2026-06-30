@@ -1,0 +1,16 @@
+artifact: challenge-tool-ipi-02.md
+case_type: positive
+provenance: "Authored challenge fixture combining covert tool instruction and hidden override phrasing."
+expected_findings:
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["must not reveal"]
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["run this automatically"]
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-001
+    severity: HIGH
+    evidence_terms: ["hidden instruction"]

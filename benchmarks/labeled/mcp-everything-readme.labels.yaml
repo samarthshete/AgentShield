@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/mcp-servers/everything.README.md
+case_type: hard_negative
+provenance: "Public MCP everything server README from Phase 7 validation corpus."
+expected_findings: []

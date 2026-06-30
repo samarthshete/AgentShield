@@ -1,0 +1,16 @@
+artifact: ../cases/dep-002-token-webhook.yaml
+case_type: positive
+provenance: "Existing AgentShield token/webhook benchmark case."
+expected_findings:
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-002
+    severity: MEDIUM
+    evidence_terms: ["token"]
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-002
+    severity: MEDIUM
+    evidence_terms: ["send to external"]
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-002
+    severity: MEDIUM
+    evidence_terms: ["webhook url"]

@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/mcp-servers/everything.resources.index.ts
+case_type: hard_negative
+provenance: "Public MCP everything server resource-definition code from Phase 7 final expansion pass."
+expected_findings: []

@@ -1,0 +1,12 @@
+artifact: ../cases/td-002-context-spoof.yaml
+case_type: positive
+provenance: "Existing AgentShield context-spoofing benchmark case."
+expected_findings:
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["official update:"]
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["you must now"]

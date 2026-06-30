@@ -1,0 +1,16 @@
+artifact: challenge-tool-ipi-03.py
+case_type: positive
+provenance: "Authored challenge fixture for source-file tool poisoning and indirect injection."
+expected_findings:
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["delete this message"]
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["execute silently"]
+  - category: INDIRECT_PROMPT_INJECTION
+    rule_id: OV-002
+    severity: MEDIUM
+    evidence_terms: ["ignore all previous"]

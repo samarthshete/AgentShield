@@ -198,7 +198,7 @@ export function DynamicSimulationPage() {
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Scenario</span>
             <select
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={scenario}
               onChange={(event) => setScenario(event.target.value as ScenarioOption)}
             >
@@ -213,7 +213,7 @@ export function DynamicSimulationPage() {
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Judge</span>
             <select
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={judge}
               onChange={(event) => setJudge(event.target.value as JudgeType)}
             >
@@ -229,7 +229,7 @@ export function DynamicSimulationPage() {
                 Model (optional override)
               </span>
               <input
-                className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
                 value={model}
                 onChange={(event) => setModel(event.target.value)}
                 placeholder={judge === "openai" ? "e.g. gpt-4o-mini" : "e.g. claude-3-5-haiku-latest"}
@@ -248,7 +248,7 @@ export function DynamicSimulationPage() {
 
           <div className="md:col-span-2">
             <button
-              className="rounded-md border border-teal-700 bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-[var(--accent)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-fg)] hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               type="submit"
               disabled={loading}
             >
@@ -271,11 +271,11 @@ export function DynamicSimulationPage() {
               <p className="mt-1 text-xs">Policy engine output before judge filtering.</p>
             </Card>
             <Card title="Confirmed Violations">
-              <p className="text-2xl font-semibold text-emerald-700">{totals.confirmed}</p>
+              <p className="text-2xl font-semibold text-[var(--sev-clean-fg)]">{totals.confirmed}</p>
               <p className="mt-1 text-xs">Actionable violations retained by the selected judge.</p>
             </Card>
             <Card title="Dismissed Violations">
-              <p className="text-2xl font-semibold text-amber-700">{totals.dismissed}</p>
+              <p className="text-2xl font-semibold text-[var(--sev-high-fg)]">{totals.dismissed}</p>
               <p className="mt-1 text-xs">Raw violations dismissed by judge review.</p>
             </Card>
           </div>
@@ -327,17 +327,17 @@ export function DynamicSimulationPage() {
                   </div>
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    <div className="rounded-md border border-slate-300 bg-slate-50 p-2 text-center">
-                      <p className="text-xs uppercase text-slate-700">Raw</p>
-                      <p className="text-xl font-semibold text-slate-800">{rawCount}</p>
+                    <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-2 text-center">
+                      <p className="text-xs uppercase text-[var(--muted)]">Raw</p>
+                      <p className="text-xl font-semibold text-[var(--fg)]">{rawCount}</p>
                     </div>
-                    <div className="rounded-md border border-emerald-300 bg-emerald-50 p-2 text-center">
-                      <p className="text-xs uppercase text-emerald-700">Confirmed</p>
-                      <p className="text-xl font-semibold text-emerald-700">{confirmedCount}</p>
+                    <div className="rounded-md border border-[var(--sev-clean-bd)] bg-[var(--sev-clean-bg)] p-2 text-center">
+                      <p className="text-xs uppercase text-[var(--sev-clean-fg)]">Confirmed</p>
+                      <p className="text-xl font-semibold text-[var(--sev-clean-fg)]">{confirmedCount}</p>
                     </div>
-                    <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-center">
-                      <p className="text-xs uppercase text-amber-700">Dismissed</p>
-                      <p className="text-xl font-semibold text-amber-700">{dismissedCount}</p>
+                    <div className="rounded-md border border-[var(--sev-high-bd)] bg-[var(--sev-high-bg)] p-2 text-center">
+                      <p className="text-xs uppercase text-[var(--sev-high-fg)]">Dismissed</p>
+                      <p className="text-xl font-semibold text-[var(--sev-high-fg)]">{dismissedCount}</p>
                     </div>
                   </div>
 

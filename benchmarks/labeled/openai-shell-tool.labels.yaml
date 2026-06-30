@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.tools.shell.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK shell tool example from Phase 7 validation corpus."
+notes: "Hard negative for current static rules: command/shell example text without permission declaration or covert instruction marker."
+expected_findings: []

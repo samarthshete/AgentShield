@@ -215,7 +215,7 @@ export function RunHistoryPage() {
                         </td>
                         <td className="p-2">
                           <button
-                            className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs hover:bg-white"
+                            className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs hover:bg-[var(--field)]"
                             onClick={() => void loadRunDetails(run.id)}
                           >
                             {selectedRunId === run.id ? "Selected" : "Inspect"}
@@ -275,7 +275,7 @@ export function RunHistoryPage() {
                         </td>
                         <td className="p-2">
                           <button
-                            className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs hover:bg-white"
+                            className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1 text-xs hover:bg-[var(--field)]"
                             onClick={() => void loadRunDetails(run.id)}
                           >
                             {selectedRunId === run.id ? "Selected" : "Inspect"}
@@ -388,11 +388,11 @@ export function RunHistoryPage() {
               </div>
               <div>
                 <p className="text-xs font-medium text-[var(--fg)]">Confirmed</p>
-                <p className="mt-1 text-lg font-semibold text-emerald-700">{dynamicCounts?.confirmed ?? 0}</p>
+                <p className="mt-1 text-lg font-semibold text-[var(--sev-clean-fg)]">{dynamicCounts?.confirmed ?? 0}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-[var(--fg)]">Dismissed</p>
-                <p className="mt-1 text-lg font-semibold text-amber-700">{dynamicCounts?.dismissed ?? 0}</p>
+                <p className="mt-1 text-lg font-semibold text-[var(--sev-high-fg)]">{dynamicCounts?.dismissed ?? 0}</p>
               </div>
             </div>
 

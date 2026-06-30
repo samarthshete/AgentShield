@@ -1,0 +1,4 @@
+artifact: ../cases/clean-001-safe-config.yaml
+case_type: hard_negative
+provenance: "Existing AgentShield clean benchmark case."
+expected_findings: []

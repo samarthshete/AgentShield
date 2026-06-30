@@ -1,6 +1,6 @@
 # AgentShield
 
-**AgentShield** is a security evaluation framework for tool-using AI agents and MCP-connected workflows. It helps developers scan configurations, detect risky patterns, and block unsafe agent behavior before it reaches production.
+**AgentShield** is a security **linter** for tool-using AI agents and MCP-style configs. It scans configurations and agent/tool traces to **detect and flag** risky patterns — tool poisoning, prompt-injection phrasing, over-broad permissions, and exfiltration signals — so you can review them before shipping. It surfaces risk; it does **not** sandbox or block agents at runtime.
 
 ## What it detects
 
@@ -11,6 +11,25 @@
 | UNSAFE_PERMISSIONS | Broad filesystem + network access scopes |
 | DATA_EXFILTRATION_PATTERN | API key forwarding, `curl` to external hosts |
 | TASK_DRIFT | Context spoofing that redirects agent goals |
+
+## How detection works (and its limits)
+
+AgentShield is a **two-tier heuristic linter**, not a runtime guardrail:
+
+- **Tier 1 — static rules:** case-insensitive substring/regex matching against a
+  curated phrase set (see `agentshield/rules/`). Fast, offline, deterministic.
+- **Tier 2 — optional LLM judge:** an OpenAI/Claude pass that filters likely
+  false positives (`--judge openai|claude`).
+
+**Known limitations — read before relying on this:**
+
+- Tier-1 matching is **evadable** by paraphrase, obfuscation (`ign0re previous`),
+  encoding (base64), or non-English text. Treat findings as *review prompts*, not proof.
+- Detection is **lexical, not semantic** — it does not understand intent.
+- The `simulate` command replays **scripted** fixtures; it is a regression harness,
+  not evidence against real adversarial agents.
+- This tool **does not enforce anything at runtime.** A non-zero exit is a CI signal,
+  not a security control.
 
 ## Quick start
 
@@ -54,6 +73,26 @@ Options:
 
 Exit codes: `0` — all cases pass, `1` — one or more cases fail.
 
+### `agentshield eval <dir>`
+
+Run a labeled evaluation suite from `*.labels.yaml` files and compute precision, recall,
+and F1 against human-authored labels.
+
+The bundled `benchmarks/labeled/` corpus currently has 50 artifacts, 27 hard negatives,
+10+ positives in every current category, Wilson confidence intervals, macro/micro/weighted
+metrics, severity-weighted recall, and evidence-span validation. It is a useful
+development benchmark, but still mixes public artifacts with authored challenge fixtures;
+expand the public-only subset before making broad market-wide accuracy claims.
+
+```
+Options:
+  --output      Directory for eval_results.json
+  --min-f1      Exit non-zero if overall F1 is below this threshold
+  --verbose     Print per-artifact detail
+```
+
+Exit codes: `0` — F1 meets threshold, `1` — F1 below threshold, `2` — invalid input.
+
 ### `agentshield simulate`
 
 Run deterministic dynamic attack simulations across all five threat categories.
@@ -95,6 +134,23 @@ Implemented endpoints:
 - `GET /api/history/dynamic`
 - `GET /api/runs/{id}`
 
+### Authentication
+
+Every endpoint except `GET /api/health` is gated by a shared token when
+`AGENTSHIELD_API_TOKEN` is set. Present it as either header:
+
+```bash
+curl -H "Authorization: Bearer $AGENTSHIELD_API_TOKEN" http://127.0.0.1:8000/api/history/scans
+# or
+curl -H "X-API-Key: $AGENTSHIELD_API_TOKEN" http://127.0.0.1:8000/api/history/scans
+```
+
+If the token is unset the API is open — intended for local development only; always
+set a token before exposing the API. LLM credentials are resolved server-side from
+`OPENAI_API_KEY` / `CLAUDE_API_KEY` and are never accepted in a request body.
+Allowed CORS origins are controlled by `AGENTSHIELD_CORS_ORIGINS` (comma-separated,
+defaults to the local Vite/CRA dev servers).
+
 ## Web Frontend (Phase F9)
 
 The React/TypeScript frontend console lives in `web/` and is complete through
@@ -117,6 +173,18 @@ Current routes:
 - `/benchmarks`
 - `/metrics`
 - `/run-history`
+- `/settings`
+
+The API client resolves connection settings per request:
+
+1. Settings page values saved in `localStorage`
+2. `VITE_API_BASE_URL` / `VITE_API_TOKEN`
+3. Default API base URL `http://127.0.0.1:8000` and no token
+
+When `AGENTSHIELD_API_TOKEN` is set on the backend, put the same token in the
+Settings page or `web/.env` as `VITE_API_TOKEN`. For containerized web builds,
+prefer entering the token in Settings so the secret is not baked into the static
+bundle; `VITE_API_BASE_URL` remains available as an optional build-time default.
 
 Dashboard status (F3):
 - Uses live backend APIs (`/api/metrics`, `/api/history/scans`, `/api/history/dynamic`)
@@ -154,6 +222,24 @@ Responsive polish status (F9):
 - Mobile/tablet layout and table responsiveness were polished for readability
 - Loading/error/empty-state behavior is now more consistent (including retry actions)
 - Dead placeholder-style UI was removed as part of final cleanup
+
+## Container deployment
+
+Local container run:
+
+```bash
+cp .env.example .env
+# set AGENTSHIELD_API_TOKEN in .env before exposing the API
+docker compose up --build
+```
+
+Services:
+
+- API: `http://127.0.0.1:8000`
+- Web console: `http://127.0.0.1:8080`
+
+The API image is built from the repository `Dockerfile`. The web image is built
+from `web/Dockerfile` and serves the compiled Vite app with nginx.
 
 ## CI / CD integration
 

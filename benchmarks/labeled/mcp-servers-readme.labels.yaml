@@ -1,0 +1,34 @@
+artifact: ../phase7_public_artifacts/mcp-servers/README.md
+case_type: positive
+provenance: "Public MCP servers README from Phase 7 validation corpus; labeled from capability and credential references documented in Phase 7 results."
+notes: "Contains broad MCP server capability descriptions, secret/API key references, token references, and outbound URL examples."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-001
+    true_positive: true
+    severity: HIGH
+    note: "README describes servers combining filesystem and network capabilities across the MCP server catalog."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-001
+    true_positive: true
+    severity: CRITICAL
+    evidence_terms: ["api key"]
+    note: "Explicit API key references are relevant secret-handling review signals."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-002
+    true_positive: true
+    severity: MEDIUM
+    evidence_terms: ["token"]
+    note: "Token references are relevant outbound/secret-handling review signals."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-003
+    true_positive: true
+    severity: LOW
+    evidence_terms: ["http://"]
+    note: "HTTP URL appears in a catalog of network-capable server integrations."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-003
+    true_positive: true
+    severity: LOW
+    evidence_terms: ["https://"]
+    note: "HTTPS URL appears in a catalog of network-capable server integrations."

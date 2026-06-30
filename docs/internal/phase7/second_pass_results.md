@@ -89,4 +89,4 @@ This supports the same conclusion as the first pass: OpenAI review helps trim lo
 ## Follow-up
 
 - A narrow tuning pass was run after this baseline.
-- Results are recorded in `docs/phase7/tuning_pass_results.md`.
+- Results are recorded in `docs/internal/phase7/tuning_pass_results.md`.

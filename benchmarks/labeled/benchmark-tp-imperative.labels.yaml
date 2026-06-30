@@ -1,0 +1,12 @@
+artifact: ../cases/tp-001-imperative-instruction.yaml
+case_type: positive
+provenance: "Existing AgentShield tool-poisoning benchmark case."
+expected_findings:
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["do not tell the user"]
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["execute silently"]

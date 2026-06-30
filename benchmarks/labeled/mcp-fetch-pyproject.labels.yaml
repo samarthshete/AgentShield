@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/mcp-servers/fetch.pyproject.toml
+case_type: hard_negative
+provenance: "Public MCP fetch server pyproject from Phase 7 validation corpus."
+expected_findings: []

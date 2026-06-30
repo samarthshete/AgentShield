@@ -6,12 +6,15 @@ type ErrorStateProps = {
 
 export function ErrorState({ message, onRetry, retryLabel = "Retry" }: ErrorStateProps) {
   return (
-    <div className="rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700" role="alert">
+    <div
+      className="rounded-lg border border-[var(--sev-critical-bd)] bg-[var(--sev-critical-bg)] p-4 text-sm text-[var(--sev-critical-fg)]"
+      role="alert"
+    >
       <p className="font-medium">Request Error</p>
       <p className="mt-1">{message}</p>
       {onRetry ? (
         <button
-          className="mt-3 rounded-md border border-rose-300 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
+          className="mt-3 rounded-md border border-[var(--sev-critical-bd)] bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--sev-critical-fg)] hover:bg-[var(--sev-critical-bg)]"
           onClick={onRetry}
           type="button"
         >
