@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import secrets
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from agentshield.config import settings
@@ -50,14 +51,45 @@ from agentshield.web.schemas import (
 )
 
 app = FastAPI(title="AgentShield Web API", version="0.1.0")
+
+_cors_origins = [
+    origin.strip()
+    for origin in settings.agentshield_cors_origins.split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 _FAIL_ORDER = {"info": 1, "low": 2, "medium": 3, "high": 4, "critical": 5}
+
+
+def require_auth(
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+) -> None:
+    """Gate protected endpoints behind a shared token.
+
+    Auth is enforced only when ``AGENTSHIELD_API_TOKEN`` is set; an empty token
+    leaves the API open for local development. The token may be presented as
+    ``Authorization: Bearer <token>`` or ``X-API-Key: <token>``.
+    """
+    token = settings.agentshield_api_token.strip()
+    if not token:
+        return
+
+    presented: str | None = None
+    if authorization and authorization.lower().startswith("bearer "):
+        presented = authorization[len("bearer ") :].strip()
+    elif x_api_key:
+        presented = x_api_key.strip()
+
+    if not presented or not secrets.compare_digest(presented, token):
+        raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
 
 def _resolve_db_path(db_path: str | None) -> Path:
@@ -91,7 +123,7 @@ def health() -> dict[str, str]:
     }
 
 
-@app.post("/api/scan", response_model=ScanResponse)
+@app.post("/api/scan", response_model=ScanResponse, dependencies=[Depends(require_auth)])
 def run_scan(request: ScanRequest) -> ScanResponse:
     out_dir = Path(request.output_dir or settings.agentshield_output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -127,7 +159,11 @@ def run_scan(request: ScanRequest) -> ScanResponse:
     )
 
 
-@app.post("/api/benchmark", response_model=BenchmarkResponse)
+@app.post(
+    "/api/benchmark",
+    response_model=BenchmarkResponse,
+    dependencies=[Depends(require_auth)],
+)
 def run_benchmark(request: BenchmarkRequest) -> BenchmarkResponse:
     from agentshield.benchmarks.runner import run_benchmark as run_benchmark_suite
 
@@ -143,18 +179,22 @@ def run_benchmark(request: BenchmarkRequest) -> BenchmarkResponse:
     return BenchmarkResponse(summary=summary, report_path=str(json_path.resolve()))
 
 
-@app.post("/api/simulate", response_model=SimulateResponse)
+@app.post(
+    "/api/simulate",
+    response_model=SimulateResponse,
+    dependencies=[Depends(require_auth)],
+)
 def run_simulation(request: SimulateRequest) -> SimulateResponse:
     out_dir = Path(request.output_dir or settings.agentshield_output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     db = _resolve_db_path(request.db_path)
 
-    llm_key = request.llm_api_key
-    if llm_key is None:
-        if request.judge.strip().lower() == "openai":
-            llm_key = settings.openai_api_key
-        else:
-            llm_key = settings.claude_api_key
+    # LLM credentials are resolved server-side only; they are never accepted in
+    # the request body.
+    if request.judge.strip().lower() == "openai":
+        llm_key = settings.openai_api_key
+    else:
+        llm_key = settings.claude_api_key
 
     try:
         judge_impl = get_judge(request.judge, api_key=llm_key, model=request.llm_model)
@@ -224,23 +264,31 @@ def run_simulation(request: SimulateRequest) -> SimulateResponse:
     )
 
 
-@app.get("/api/metrics", response_model=MetricsResponse)
+@app.get("/api/metrics", response_model=MetricsResponse, dependencies=[Depends(require_auth)])
 def get_metrics(
     fixtures: str = Query("benchmarks/fixtures"),
     cases: str = Query("benchmarks/cases"),
+    eval_suite: str | None = None,
 ) -> MetricsResponse:
     fixtures_path = Path(fixtures)
     cases_path = Path(cases)
+    eval_path = Path(eval_suite) if eval_suite else None
     if not fixtures_path.exists():
         raise HTTPException(status_code=404, detail=f"Fixtures path not found: {fixtures_path}")
     if not cases_path.exists():
         raise HTTPException(status_code=404, detail=f"Benchmark cases path not found: {cases_path}")
+    if eval_path is not None and not eval_path.exists():
+        raise HTTPException(status_code=404, detail=f"Eval suite path not found: {eval_path}")
 
-    metrics = run_all_and_aggregate(fixtures_path, cases_path)
+    metrics = run_all_and_aggregate(fixtures_path, cases_path, eval_path)
     return MetricsResponse(metrics=metrics)
 
 
-@app.get("/api/history/scans", response_model=ScanHistoryResponse)
+@app.get(
+    "/api/history/scans",
+    response_model=ScanHistoryResponse,
+    dependencies=[Depends(require_auth)],
+)
 def get_scan_history(
     limit: int = Query(50, ge=1, le=500),
     db_path: str | None = Query(None),
@@ -249,7 +297,11 @@ def get_scan_history(
     return ScanHistoryResponse(runs=[ScanRunHistoryItem(**row) for row in rows])
 
 
-@app.get("/api/history/dynamic", response_model=DynamicHistoryResponse)
+@app.get(
+    "/api/history/dynamic",
+    response_model=DynamicHistoryResponse,
+    dependencies=[Depends(require_auth)],
+)
 def get_dynamic_history(
     limit: int = Query(50, ge=1, le=500),
     db_path: str | None = Query(None),
@@ -258,7 +310,11 @@ def get_dynamic_history(
     return DynamicHistoryResponse(runs=[_coerce_dynamic_run(row) for row in rows])
 
 
-@app.get("/api/runs/{run_id}", response_model=RunDetailsResponse)
+@app.get(
+    "/api/runs/{run_id}",
+    response_model=RunDetailsResponse,
+    dependencies=[Depends(require_auth)],
+)
 def get_run_details(
     run_id: str,
     db_path: str | None = Query(None),
@@ -289,4 +345,3 @@ def get_run_details(
         )
 
     raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
-
