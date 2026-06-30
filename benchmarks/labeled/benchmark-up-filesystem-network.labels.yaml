@@ -1,0 +1,8 @@
+artifact: ../cases/up-001-filesystem-network.yaml
+case_type: positive
+provenance: "Existing AgentShield unsafe-permissions benchmark case."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-001
+    severity: HIGH
+    note: "Filesystem and network capabilities co-located."

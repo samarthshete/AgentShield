@@ -1,0 +1,10 @@
+artifact: ../phase7_public_artifacts/mcp-servers/filesystem.index.ts
+case_type: positive
+provenance: "Public MCP filesystem server implementation from Phase 7 final expansion pass."
+notes: "Defines filesystem read/write tools and allowed-directory access control."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-003
+    true_positive: true
+    severity: LOW
+    note: "Filesystem server co-locates read/write capability with permission/access-control vocabulary; low-severity review signal."

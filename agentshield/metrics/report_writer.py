@@ -81,6 +81,35 @@ def render_markdown(m: ProjectMetrics) -> str:
         ("Max severity seen", m.dynamic.max_severity_seen or "none"),
     ])
 
+    heading(2, "Independent Evaluation")
+    if m.eval.total_artifacts:
+        lines += _table(("Metric", "Value"), [
+            ("Labeled artifacts", str(m.eval.total_artifacts)),
+            ("Positive artifacts", str(m.eval.positive_artifacts)),
+            ("Hard negatives", str(m.eval.hard_negative_artifacts)),
+            ("Expected findings", str(m.eval.total_expected_findings)),
+            ("Total findings", str(m.eval.total_findings)),
+            ("True positives", str(m.eval.true_positives)),
+            ("False positives", str(m.eval.false_positives)),
+            ("False negatives", str(m.eval.false_negatives)),
+            ("Micro precision / recall / F1", f"{m.eval.micro_precision:.0%} / {m.eval.micro_recall:.0%} / {m.eval.micro_f1:.0%}"),
+            (
+                "Precision Wilson 95% CI",
+                f"{m.eval.precision_ci.get('lower', 0):.0%}-{m.eval.precision_ci.get('upper', 0):.0%}",
+            ),
+            (
+                "Recall Wilson 95% CI",
+                f"{m.eval.recall_ci.get('lower', 0):.0%}-{m.eval.recall_ci.get('upper', 0):.0%}",
+            ),
+            ("Macro precision / recall / F1", f"{m.eval.macro_precision:.0%} / {m.eval.macro_recall:.0%} / {m.eval.macro_f1:.0%}"),
+            ("Weighted precision / recall / F1", f"{m.eval.weighted_precision:.0%} / {m.eval.weighted_recall:.0%} / {m.eval.weighted_f1:.0%}"),
+            ("Severity-weighted recall", f"{m.eval.severity_weighted_recall:.0%}"),
+            ("Evidence validations", f"{m.eval.evidence_validated}/{m.eval.evidence_expectations}"),
+        ])
+    else:
+        lines.append("Not run yet. Use `agentshield eval benchmarks/labeled` once labels exist.")
+        lines.append("")
+
     heading(2, "Rule Coverage")
     lines += _table(("Metric", "Value"), [
         ("Total distinct rule IDs", str(m.rule_coverage.total_rules)),

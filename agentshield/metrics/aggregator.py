@@ -13,6 +13,7 @@ from agentshield.models.finding import Finding
 from agentshield.models.metrics import (
     BenchmarkMetrics,
     DynamicMetrics,
+    EvalMetrics,
     ProjectMetrics,
     ScanMetrics,
 )
@@ -79,6 +80,42 @@ def aggregate_dynamic(results: list[DynamicScanResult]) -> DynamicMetrics:
     )
 
 
+def aggregate_eval(summary) -> EvalMetrics:
+    return EvalMetrics(
+        total_artifacts=summary.total_artifacts,
+        positive_artifacts=summary.positive_artifacts,
+        hard_negative_artifacts=summary.hard_negative_artifacts,
+        negative_artifacts=summary.negative_artifacts,
+        total_expected_findings=summary.total_expected_findings,
+        total_findings=summary.total_findings,
+        true_positives=summary.true_positives,
+        false_positives=summary.false_positives,
+        false_negatives=summary.false_negatives,
+        precision=summary.precision,
+        precision_ci=summary.precision_ci.model_dump(),
+        recall=summary.recall,
+        recall_ci=summary.recall_ci.model_dump(),
+        f1=summary.f1,
+        micro_precision=summary.micro_precision,
+        micro_recall=summary.micro_recall,
+        micro_f1=summary.micro_f1,
+        macro_precision=summary.macro_precision,
+        macro_recall=summary.macro_recall,
+        macro_f1=summary.macro_f1,
+        weighted_precision=summary.weighted_precision,
+        weighted_recall=summary.weighted_recall,
+        weighted_f1=summary.weighted_f1,
+        severity_weighted_recall=summary.severity_weighted_recall,
+        evidence_expectations=summary.evidence_expectations,
+        evidence_validated=summary.evidence_validated,
+        evidence_validation_failures=summary.evidence_validation_failures,
+        category_breakdown={
+            category: metric.model_dump()
+            for category, metric in summary.category_breakdown.items()
+        },
+    )
+
+
 def _run_dynamic_scenarios() -> list[DynamicScanResult]:
     results: list[DynamicScanResult] = []
     for payload in list_scenarios():
@@ -109,10 +146,12 @@ def build_project_metrics(
     targets: list[ScannedTarget],
     benchmark_summary: BenchmarkSummary,
     dynamic_results: list[DynamicScanResult],
+    eval_summary=None,
 ) -> ProjectMetrics:
     scan_m = aggregate_scan(scan_run, findings, targets)
     bench_m = aggregate_benchmark(benchmark_summary)
     dyn_m = aggregate_dynamic(dynamic_results)
+    eval_m = aggregate_eval(eval_summary) if eval_summary is not None else EvalMetrics()
 
     return ProjectMetrics(
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -122,6 +161,7 @@ def build_project_metrics(
         scan=scan_m,
         benchmark=bench_m,
         dynamic=dyn_m,
+        eval=eval_m,
         rule_coverage=build_rule_coverage(),
         rules_only_rate=1.0,
         llm_routing_rate=0.0,
@@ -137,13 +177,16 @@ def build_project_metrics(
 def run_all_and_aggregate(
     fixtures_path: Path,
     benchmark_cases_dir: Path,
+    eval_suite_dir: Path | None = None,
 ) -> ProjectMetrics:
     from agentshield.benchmarks.runner import run_benchmark
+    from agentshield.eval.scorer import run_labeled_eval
     from agentshield.services.scan_service import run_static_scan
 
     benchmark_summary = run_benchmark(benchmark_cases_dir)
     scan_run, findings, targets = run_static_scan(str(fixtures_path))
     dynamic_results = _run_dynamic_scenarios()
+    eval_summary = run_labeled_eval(eval_suite_dir) if eval_suite_dir is not None else None
 
     return build_project_metrics(
         scan_run=scan_run,
@@ -151,4 +194,5 @@ def run_all_and_aggregate(
         targets=targets,
         benchmark_summary=benchmark_summary,
         dynamic_results=dynamic_results,
+        eval_summary=eval_summary,
     )

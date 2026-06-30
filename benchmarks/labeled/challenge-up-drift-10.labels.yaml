@@ -1,0 +1,11 @@
+artifact: challenge-up-drift-10.ts
+case_type: positive
+provenance: "Authored challenge fixture for TypeScript permission text and system-context spoofing."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-003
+    severity: LOW
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["as the system"]

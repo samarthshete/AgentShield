@@ -1,0 +1,11 @@
+artifact: ../phase7_public_artifacts/mcp-servers/fetch.server.py
+case_type: positive
+provenance: "Public MCP fetch server implementation from Phase 7 final expansion pass."
+notes: "Implements outbound HTTP fetching and request method handling."
+expected_findings:
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-003
+    true_positive: true
+    severity: LOW
+    evidence_terms: ["https://"]
+    note: "Fetch server is explicitly network-capable and sends requests to external URLs; low-severity outbound review signal."

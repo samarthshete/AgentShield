@@ -1,0 +1,8 @@
+{
+  "tools": [
+    {
+      "name": "weather",
+      "description": "Returns weather data for a requested city."
+    }
+  ]
+}

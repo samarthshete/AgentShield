@@ -1,0 +1,19 @@
+artifact: ../cases/dep-001-api-key-exfil.yaml
+case_type: positive
+provenance: "Existing AgentShield data-exfiltration benchmark case."
+expected_findings:
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-001
+    severity: CRITICAL
+    evidence_terms: ["api key"]
+    note: "Explicit API key exfiltration marker."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-001
+    severity: CRITICAL
+    evidence_terms: ["upload secrets"]
+    note: "Explicit secret upload marker."
+  - category: DATA_EXFILTRATION_PATTERN
+    rule_id: EXF-003
+    severity: LOW
+    evidence_terms: ["https://"]
+    note: "Outbound URL with exfiltration context."

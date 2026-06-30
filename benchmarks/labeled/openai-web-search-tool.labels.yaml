@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.tools.web_search.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK web search example from Phase 7 final expansion pass."
+notes: "Uses a web-search tool conceptually, but current static rules should not flag benign SDK example code without secret/exfiltration or unsafe-permission context."
+expected_findings: []

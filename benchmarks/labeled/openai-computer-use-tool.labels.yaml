@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.tools.computer_use.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK computer-use example from Phase 7 final expansion pass."
+notes: "Benign example code for the current static threat model; no covert instruction, secret exfiltration, or permission declaration expected."
+expected_findings: []

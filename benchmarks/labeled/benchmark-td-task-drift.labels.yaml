@@ -1,0 +1,8 @@
+artifact: ../cases/td-001-task-drift.yaml
+case_type: positive
+provenance: "Existing AgentShield task-drift benchmark case."
+expected_findings:
+  - category: TASK_DRIFT
+    rule_id: DRIFT-001
+    severity: MEDIUM
+    evidence_terms: ["instead of the user's request"]

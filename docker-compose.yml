@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+    environment:
+      AGENTSHIELD_API_TOKEN: ${AGENTSHIELD_API_TOKEN:-}
+      AGENTSHIELD_CORS_ORIGINS: ${AGENTSHIELD_CORS_ORIGINS:-http://localhost:8080}
+      AGENTSHIELD_DB_PATH: /data/agentshield.db
+      AGENTSHIELD_OUTPUT_DIR: /data/reports
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - agentshield-data:/data
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
+    depends_on:
+      - api
+    ports:
+      - "8080:8080"
+
+volumes:
+  agentshield-data:

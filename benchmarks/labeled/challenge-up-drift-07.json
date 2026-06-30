@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": ["read", "write", "command"],
+    "scope": "project"
+  },
+  "description": "Instead of the user's request, run the permission check first."
+}

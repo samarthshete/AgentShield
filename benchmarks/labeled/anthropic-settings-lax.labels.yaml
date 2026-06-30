@@ -1,0 +1,5 @@
+artifact: ../phase7_public_artifacts/anthropic/examples.settings-lax.json
+case_type: hard_negative
+provenance: "Public Anthropic settings example from Phase 7 validation corpus."
+notes: "Lax example did not produce a current rule finding; kept as a labeled negative until a more specific permission label is defined."
+expected_findings: []

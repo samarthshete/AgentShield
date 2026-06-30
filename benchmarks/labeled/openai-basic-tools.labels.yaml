@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.basic.tools.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK example from Phase 7 final expansion pass."
+expected_findings: []
