@@ -32,3 +32,31 @@ jobs:
 
       - name: Run labeled eval corpus
         run: python -m agentshield eval benchmarks/labeled --output agentshield-output/eval --min-f1 0.95
+
+  frontend:
+    name: Frontend build + test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (tsc + vite)
+        run: npm run build
+
+      - name: Run tests (vitest)
+        run: npm run test
