@@ -1,0 +1,152 @@
+<!-- @dsCard group="Overview" name="Dashboard (flagship)" subtitle="Full console — light & dark, severity-led, calm hierarchy" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentShield — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .theme{padding:22px}
+  /* ---- tokens ---- */
+  .light{--bg:#f7f8fa;--surface:#fff;--elevated:#fff;--border:#e6e8ec;--border-soft:#eef0f3;--fg:#0f172a;--muted:#5b6675;--faint:#94a3b8;--accent:#0f766e;--accent-soft:#ccfbf1;--grid:rgba(15,23,42,.035);
+    --crit-fg:#e11d48;--crit-bg:#fff1f2;--crit-bd:#fecdd3;--high-fg:#d97706;--high-bg:#fffbeb;--high-bd:#fde68a;--med-fg:#ca8a04;--med-bg:#fefce8;--med-bd:#fef08a;--low-fg:#0284c7;--low-bg:#f0f9ff;--low-bd:#bae6fd;--ok-fg:#059669;--ok-bg:#ecfdf5;--ok-bd:#a7f3d0;}
+  .dark{--bg:#0a0e14;--surface:#121821;--elevated:#1a212c;--border:#232b37;--border-soft:#1a212c;--fg:#e6edf3;--muted:#8b98a9;--faint:#5b6675;--accent:#2dd4bf;--accent-soft:#0f2e2b;--grid:rgba(255,255,255,.028);
+    --crit-fg:#fb7185;--crit-bg:rgba(244,63,94,.13);--crit-bd:rgba(244,63,94,.32);--high-fg:#fbbf24;--high-bg:rgba(245,158,11,.13);--high-bd:rgba(245,158,11,.3);--med-fg:#facc15;--med-bg:rgba(234,179,8,.12);--med-bd:rgba(234,179,8,.28);--low-fg:#38bdf8;--low-bg:rgba(56,189,248,.12);--low-bd:rgba(56,189,248,.3);--ok-fg:#34d399;--ok-bg:rgba(16,185,129,.12);--ok-bd:rgba(16,185,129,.3);}
+  .app{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;}
+  .label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:14px}
+  /* header */
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border)}
+  .brand{display:flex;align-items:center;gap:11px}
+  .logo{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+  .brand .t{font-size:14px;font-weight:600}.brand .s{font-size:11px;color:var(--muted)}
+  .hr{display:flex;align-items:center;gap:14px}
+  .conn{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);padding:5px 10px;border-radius:8px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px color-mix(in srgb,#10b981 22%,transparent)}
+  .ico-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+  /* layout */
+  .layout{display:grid;grid-template-columns:172px 1fr;gap:0}
+  nav{padding:12px;border-right:1px solid var(--border);background:var(--surface)}
+  nav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:2px}
+  nav a svg{opacity:.8}
+  nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  nav a.active svg{opacity:1}
+  main{padding:20px}
+  .h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .meta{font-size:11px;color:var(--faint);font-family:"JetBrains Mono",monospace}
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .kpi .k{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:3px}
+  .kpi .d{font-size:11px;color:var(--faint);margin-top:6px}
+  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .card .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .card .ct{font-size:13px;font-weight:600}
+  /* severity bar */
+  .sevbar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-bottom:12px}
+  .sevbar i{display:block}
+  .leg{display:flex;flex-wrap:wrap;gap:8px}
+  .badge{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:600;border:1px solid transparent;font-family:"JetBrains Mono",monospace}
+  .b-crit{color:var(--crit-fg);background:var(--crit-bg);border-color:var(--crit-bd)}
+  .b-high{color:var(--high-fg);background:var(--high-bg);border-color:var(--high-bd)}
+  .b-med{color:var(--med-fg);background:var(--med-bg);border-color:var(--med-bd)}
+  .b-low{color:var(--low-fg);background:var(--low-bg);border-color:var(--low-bd)}
+  .b-ok{color:var(--ok-fg);background:var(--ok-bg);border-color:var(--ok-bd)}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:0 10px 9px}
+  td{padding:9px 10px;border-top:1px solid var(--border-soft);vertical-align:middle}
+  tr td:first-child{border-left:2px solid transparent}
+  tr.r-crit td:first-child{border-left-color:var(--crit-fg)}
+  tr.r-high td:first-child{border-left-color:var(--high-fg)}
+  tr.r-med td:first-child{border-left-color:var(--med-fg)}
+  .mono{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:11.5px}
+  .cat{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--border-soft)}
+  .cat:first-child{border-top:none}
+  .bar{height:6px;border-radius:4px;background:var(--accent);opacity:.85}
+  .track{flex:1;height:6px;border-radius:4px;background:var(--bg);margin:0 10px;overflow:hidden}
+</style>
+</head>
+<body>
+<script>
+  function svg(p){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>'}
+</script>
+<!-- rendered twice: light then dark -->
+<div id="tpl"></div>
+<script>
+  const I={
+    grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+    scan:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    play:'<polygon points="6 3 20 12 6 21 6 3"/>',
+    chart:'<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="13" y="6" width="3" height="11"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    cog:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/>',
+    moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>'
+  };
+  function S(p){return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>'}
+  function shell(mode){
+    const toggle = mode==='light'?S(I.moon):S(I.sun);
+    return `
+    <div class="theme ${mode}">
+      <div class="app">
+        <div class="hdr">
+          <div class="brand"><div class="logo">${S(I.grid)}</div><div><div class="t">AgentShield</div><div class="s">Security posture</div></div></div>
+          <div class="hr"><div class="conn"><span class="dot"></span> API reachable</div><button class="ico-btn">${toggle}</button><button class="ico-btn">${S(I.cog)}</button></div>
+        </div>
+        <div class="layout">
+          <nav>
+            <a class="active">${S(I.grid)} Dashboard</a>
+            <a>${S(I.scan)} Static Scan</a>
+            <a>${S(I.play)} Dynamic Sim</a>
+            <a>${S(I.chart)} Benchmarks</a>
+            <a>${S(I.chart)} Metrics</a>
+            <a>${S(I.clock)} History</a>
+            <a>${S(I.cog)} Settings</a>
+          </nav>
+          <main>
+            <div style="display:flex;align-items:end;justify-content:space-between">
+              <div><div class="h2">Security posture</div><div class="sub">Latest scan across 12 agent configs &amp; MCP servers</div></div>
+              <div class="meta">updated 2m ago</div>
+            </div>
+            <div class="kpis">
+              <div class="kpi"><div class="k">12</div><div class="l">Findings</div><div class="d">across 5 categories</div></div>
+              <div class="kpi"><div class="k" style="color:var(--crit-fg)">3</div><div class="l">High / Critical</div><div class="d">needs review</div></div>
+              <div class="kpi"><div class="k">38</div><div class="l">Risk score</div><div class="d">/ 100 weighted</div></div>
+              <div class="kpi"><div class="k" style="color:var(--ok-fg)">98%</div><div class="l">Eval F1</div><div class="d">50 labeled artifacts</div></div>
+            </div>
+            <div class="grid2">
+              <div class="card">
+                <div class="ch"><span class="ct">Recent findings</span><span class="meta">3 of 12</span></div>
+                <div class="sevbar"><i style="flex:1;background:var(--crit-fg)"></i><i style="flex:2;background:var(--high-fg)"></i><i style="flex:3;background:var(--med-fg)"></i><i style="flex:4;background:var(--low-fg)"></i><i style="flex:2;background:var(--faint)"></i></div>
+                <table>
+                  <thead><tr><th>Severity</th><th>Rule</th><th>Title</th><th>Component</th></tr></thead>
+                  <tbody>
+                    <tr class="r-crit"><td><span class="badge b-crit">${S(I.scan)} CRITICAL</span></td><td class="mono">EXF-001</td><td>Exfiltration signal: “upload secrets”</td><td class="mono">tools.json</td></tr>
+                    <tr class="r-high"><td><span class="badge b-high">HIGH</span></td><td class="mono">SP-001</td><td>Hidden imperative in description</td><td class="mono">server.py</td></tr>
+                    <tr class="r-med"><td><span class="badge b-med">MEDIUM</span></td><td class="mono">PERM-002</td><td>Broad filesystem + network scope</td><td class="mono">config.toml</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card">
+                <div class="ch"><span class="ct">By category</span></div>
+                ${[['Data exfiltration',11,'var(--crit-fg)'],['Tool poisoning',10,'var(--high-fg)'],['Unsafe permissions',10,'var(--med-fg)'],['Prompt injection',10,'var(--low-fg)'],['Task drift',10,'var(--faint)']].map(([n,v,c])=>`<div class="cat"><span>${n}</span><span class="track"><span class="bar" style="display:block;width:${v*8}%;background:${c}"></span></span><span class="mono">${v}</span></div>`).join('')}
+                <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge b-ok">${S(I.play)} run scan</span><span class="badge b-low">view report</span></div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('tpl').innerHTML = shell('light') + shell('dark');
+</script>
+</body>
+</html>

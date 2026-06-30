@@ -1,0 +1,60 @@
+<!-- @dsCard group="Foundations" name="Foundations" subtitle="Palette · severity scale · type · spacing — light & dark" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentShield — Foundations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+  .pane{padding:26px}
+  .light{background:#f7f8fa;color:#0f172a;--surface:#fff;--border:#e6e8ec;--muted:#5b6675;--faint:#94a3b8;--accent:#0f766e}
+  .dark{background:#0a0e14;color:#e6edf3;--surface:#121821;--border:#232b37;--muted:#8b98a9;--faint:#5b6675;--accent:#2dd4bf}
+  h1{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:0 0 12px}
+  h2{font-size:11px;font-weight:600;color:var(--muted);margin:22px 0 9px}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .sw{border-radius:9px;height:54px;border:1px solid var(--border);display:flex;flex-direction:column;justify-content:flex-end;padding:7px;font-family:"JetBrains Mono",monospace;font-size:10px}
+  .sevrow{display:flex;flex-direction:column;gap:6px}
+  .sev{display:flex;align-items:center;gap:10px;font-size:12px}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;border:1px solid transparent;font-family:"JetBrains Mono",monospace;min-width:96px;justify-content:center}
+  .sev .desc{color:var(--muted)}
+  .type>div{margin-bottom:9px;line-height:1.15}
+  .tl{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--faint)}
+  .bars{display:flex;align-items:flex-end;gap:8px}
+  .bar{background:var(--accent);border-radius:3px;width:26px;opacity:.85}
+  .bar span{display:block;text-align:center;color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:10px;margin-top:5px}
+</style>
+</head>
+<body>
+<div id="tpl"></div>
+<script>
+  const SEV_L=[['CRITICAL','#e11d48','#fff1f2','#fecdd3','blocks ship'],['HIGH','#d97706','#fffbeb','#fde68a','review now'],['MEDIUM','#ca8a04','#fefce8','#fef08a','review'],['LOW','#0284c7','#f0f9ff','#bae6fd','note'],['INFO','#475569','#f1f5f9','#e2e8f0','context'],['CLEAN','#059669','#ecfdf5','#a7f3d0','passed']];
+  const SEV_D=[['CRITICAL','#fb7185','rgba(244,63,94,.13)','rgba(244,63,94,.32)','blocks ship'],['HIGH','#fbbf24','rgba(245,158,11,.13)','rgba(245,158,11,.3)','review now'],['MEDIUM','#facc15','rgba(234,179,8,.12)','rgba(234,179,8,.28)','review'],['LOW','#38bdf8','rgba(56,189,248,.12)','rgba(56,189,248,.3)','note'],['INFO','#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.3)','context'],['CLEAN','#34d399','rgba(16,185,129,.12)','rgba(16,185,129,.3)','passed']];
+  const SURF_L=[['#f7f8fa','--bg','#0f172a'],['#ffffff','--surface','#0f172a'],['#f1f5f9','--muted-bg','#0f172a'],['#0f766e','--accent','#fff'],['#0f172a','--fg','#fff'],['#e6e8ec','--border','#0f172a']];
+  const SURF_D=[['#0a0e14','--bg','#e6edf3'],['#121821','--surface','#e6edf3'],['#1a212c','--elevated','#e6edf3'],['#2dd4bf','--accent','#042f2e'],['#e6edf3','--fg','#0a0e14'],['#232b37','--border','#e6edf3']];
+  function pane(mode,surf,sev){
+    return `<div class="pane ${mode}">
+      <h1>${mode} theme</h1>
+      <h2>Surfaces &amp; brand</h2>
+      <div class="swatches">${surf.map(([bg,n,fg])=>`<div class="sw" style="background:${bg};color:${fg}">${n}<br>${bg}</div>`).join('')}</div>
+      <h2>Severity scale — icon + label + color (color-blind safe)</h2>
+      <div class="sevrow">${sev.map(([n,fg,bg,bd,d])=>`<div class="sev"><span class="chip" style="color:${fg};background:${bg};border-color:${bd}">${n}</span><span class="desc">${d}</span></div>`).join('')}</div>
+      <h2>Type — Inter UI · JetBrains Mono code</h2>
+      <div class="type">
+        <div><span class="tl">30/700</span><div style="font-size:28px;font-weight:700;letter-spacing:-.02em">AgentShield</div></div>
+        <div><span class="tl">19/600</span><div style="font-size:19px;font-weight:600">Findings Summary</div></div>
+        <div><span class="tl">14/400</span><div style="font-size:14px">Review flagged patterns before shipping.</div></div>
+        <div><span class="tl">12 mono</span><div style="font-family:'JetBrains Mono',monospace;font-size:12px">EXF-001 · SP-001 · PERM-002</div></div>
+      </div>
+      <h2>Spacing (px)</h2>
+      <div class="bars">${[4,8,12,16,24,32].map(v=>`<div><div class="bar" style="height:${v}px"></div><span>${v}</span></div>`).join('')}</div>
+    </div>`;
+  }
+  document.getElementById('tpl').innerHTML = '<div class="wrap">'+pane('light',SURF_L,SEV_L)+pane('dark',SURF_D,SEV_D)+'</div>';
+</script>
+</body>
+</html>
