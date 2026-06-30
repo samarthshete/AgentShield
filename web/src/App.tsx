@@ -6,6 +6,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DynamicSimulationPage } from "./pages/DynamicSimulationPage";
 import { MetricsPage } from "./pages/MetricsPage";
 import { RunHistoryPage } from "./pages/RunHistoryPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { StaticScanPage } from "./pages/StaticScanPage";
 
 export function App() {
@@ -19,9 +20,9 @@ export function App() {
         <Route path="/benchmarks" element={<BenchmarkPage />} />
         <Route path="/metrics" element={<MetricsPage />} />
         <Route path="/run-history" element={<RunHistoryPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
   );
 }
-

@@ -1,11 +1,18 @@
 .DS_Store
 
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
 # Internal planning docs (keep local, never publish)
 PROJECT.md
 CURRENT_STATE.md
 TASK.md
 DECISIONS.md
 UNDERSTANDING.md
+resume_job_targeting_source.md
+docs/internal/RESUME_BULLET_BANK.md
 
 # Python / virtualenv
 __pycache__/

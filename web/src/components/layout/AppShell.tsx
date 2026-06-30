@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Benchmarks", path: "/benchmarks" },
   { label: "Metrics", path: "/metrics" },
   { label: "Run History", path: "/run-history" },
+  { label: "Settings", path: "/settings" },
 ];
 
 function navItemClass(isActive: boolean): string {
