@@ -335,8 +335,8 @@ export function MetricsPage() {
                       <tr key={row.category} className="border-b border-[var(--border)]">
                         <td className="p-2">{row.category}</td>
                         <td className="p-2">{row.total}</td>
-                        <td className="p-2 text-emerald-700">{row.passed}</td>
-                        <td className="p-2 text-rose-700">{row.failed}</td>
+                        <td className="p-2 text-[var(--sev-clean-fg)]">{row.passed}</td>
+                        <td className="p-2 text-[var(--sev-critical-fg)]">{row.failed}</td>
                       </tr>
                     ))}
                   </tbody>

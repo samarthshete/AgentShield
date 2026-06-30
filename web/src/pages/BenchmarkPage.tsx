@@ -103,7 +103,7 @@ export function BenchmarkPage() {
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Suite Directory</span>
             <input
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={suiteDir}
               onChange={(event) => setSuiteDir(event.target.value)}
               placeholder="benchmarks/cases"
@@ -115,7 +115,7 @@ export function BenchmarkPage() {
               Output Directory (optional)
             </span>
             <input
-              className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--fg)]"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
               value={outputDir}
               onChange={(event) => setOutputDir(event.target.value)}
               placeholder="agentshield-output"
@@ -123,7 +123,7 @@ export function BenchmarkPage() {
           </label>
           <div className="md:col-span-2">
             <button
-              className="rounded-md border border-teal-700 bg-teal-700 px-3 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-[var(--accent)] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-fg)] hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               type="submit"
               disabled={loading}
             >
@@ -145,10 +145,10 @@ export function BenchmarkPage() {
               <p className="text-2xl font-semibold text-[var(--fg)]">{result.summary.total_cases}</p>
             </Card>
             <Card title="Passed">
-              <p className="text-2xl font-semibold text-emerald-700">{result.summary.passed}</p>
+              <p className="text-2xl font-semibold text-[var(--sev-clean-fg)]">{result.summary.passed}</p>
             </Card>
             <Card title="Failed">
-              <p className="text-2xl font-semibold text-rose-700">{result.summary.failed}</p>
+              <p className="text-2xl font-semibold text-[var(--sev-critical-fg)]">{result.summary.failed}</p>
             </Card>
             <Card title="Pass Rate">
               <p className="text-2xl font-semibold text-[var(--fg)]">
@@ -181,8 +181,8 @@ export function BenchmarkPage() {
                         <tr key={row.category} className="border-b border-[var(--border)]">
                           <td className="p-2">{row.category}</td>
                           <td className="p-2">{row.total}</td>
-                          <td className="p-2 text-emerald-700">{row.passed}</td>
-                          <td className="p-2 text-rose-700">{row.failed}</td>
+                          <td className="p-2 text-[var(--sev-clean-fg)]">{row.passed}</td>
+                          <td className="p-2 text-[var(--sev-critical-fg)]">{row.failed}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -206,17 +206,17 @@ export function BenchmarkPage() {
             ) : (
               <div className="space-y-3">
                 {failedCases.map((item) => (
-                  <div key={item.case_id} className="rounded-md border border-rose-300 bg-rose-50 p-3">
+                  <div key={item.case_id} className="rounded-md border border-[var(--sev-critical-bd)] bg-[var(--sev-critical-bg)] p-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <code className="text-xs text-rose-700">{item.case_id}</code>
+                      <code className="text-xs text-[var(--sev-critical-fg)]">{item.case_id}</code>
                       <Badge variant="danger">failed</Badge>
                       <Badge variant="neutral">{item.category}</Badge>
                     </div>
-                    <p className="mt-1 text-sm font-medium text-rose-800">{item.case_name}</p>
-                    <p className="mt-1 text-xs text-rose-700">
+                    <p className="mt-1 text-sm font-medium text-[var(--sev-critical-fg)]">{item.case_name}</p>
+                    <p className="mt-1 text-xs text-[var(--sev-critical-fg)]">
                       Findings: {item.findings_count} • Max severity: {item.max_severity ?? "-"}
                     </p>
-                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-rose-700">
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[var(--sev-critical-fg)]">
                       {item.failure_reasons.length > 0 ? (
                         item.failure_reasons.map((reason, index) => <li key={index}>{reason}</li>)
                       ) : (

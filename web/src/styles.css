@@ -3,39 +3,102 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f3f5f8;
+  /* surfaces & brand — light */
+  --bg: #f7f8fa;
   --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --fg: #111827;
-  --muted: #4b5563;
-  --border: #d1d5db;
+  --surface-muted: #f1f5f9;
+  --elevated: #ffffff;
+  --field: #ffffff;
+  --fg: #0f172a;
+  --muted: #5b6675;
+  --faint: #94a3b8;
+  --border: #e6e8ec;
+  --border-soft: #eef0f3;
   --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: #ccfbf1;
+  --accent-fg: #ffffff;
+  --grid: rgba(15, 23, 42, 0.035);
+
+  /* severity — light */
+  --sev-critical-fg: #e11d48; --sev-critical-bg: #fff1f2; --sev-critical-bd: #fecdd3;
+  --sev-high-fg: #d97706;     --sev-high-bg: #fffbeb;     --sev-high-bd: #fde68a;
+  --sev-medium-fg: #ca8a04;   --sev-medium-bg: #fefce8;   --sev-medium-bd: #fef08a;
+  --sev-low-fg: #0284c7;      --sev-low-bg: #f0f9ff;      --sev-low-bd: #bae6fd;
+  --sev-info-fg: #475569;     --sev-info-bg: #f1f5f9;     --sev-info-bd: #e2e8f0;
+  --sev-clean-fg: #059669;    --sev-clean-bg: #ecfdf5;    --sev-clean-bd: #a7f3d0;
+}
+
+.dark {
+  /* surfaces & brand — dark (deep grey-blue, not pure black) */
+  --bg: #0a0e14;
+  --surface: #121821;
+  --surface-muted: #1a212c;
+  --elevated: #1a212c;
+  --field: #0d141d;
+  --fg: #e6edf3;
+  --muted: #8b98a9;
+  --faint: #5b6675;
+  --border: #232b37;
+  --border-soft: #1a212c;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-soft: #0f2e2b;
+  --accent-fg: #042f2e;
+  --grid: rgba(255, 255, 255, 0.028);
+
+  /* severity — dark */
+  --sev-critical-fg: #fb7185; --sev-critical-bg: rgba(244, 63, 94, 0.13); --sev-critical-bd: rgba(244, 63, 94, 0.32);
+  --sev-high-fg: #fbbf24;     --sev-high-bg: rgba(245, 158, 11, 0.13);    --sev-high-bd: rgba(245, 158, 11, 0.30);
+  --sev-medium-fg: #facc15;   --sev-medium-bg: rgba(234, 179, 8, 0.12);   --sev-medium-bd: rgba(234, 179, 8, 0.28);
+  --sev-low-fg: #38bdf8;      --sev-low-bg: rgba(56, 189, 248, 0.12);     --sev-low-bd: rgba(56, 189, 248, 0.30);
+  --sev-info-fg: #94a3b8;     --sev-info-bg: rgba(148, 163, 184, 0.12);   --sev-info-bd: rgba(148, 163, 184, 0.30);
+  --sev-clean-fg: #34d399;    --sev-clean-bg: rgba(16, 185, 129, 0.12);   --sev-clean-bd: rgba(16, 185, 129, 0.30);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light dark;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--fg);
-  background:
-    radial-gradient(circle at top right, #dbeafe 0%, transparent 42%),
-    radial-gradient(circle at bottom left, #d1fae5 0%, transparent 35%),
-    var(--bg);
-  font-family:
-    "IBM Plex Sans",
-    "Avenir Next",
-    "Segoe UI",
-    sans-serif;
+  background-color: var(--bg);
+  /* barely-visible blueprint grid (Vercel aesthetic) */
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  font-family: "Inter", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
   min-height: 100vh;
 }
 
-code {
+code,
+pre {
   font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 }
 
+/* token-driven defaults so form controls adapt to theme even without explicit classes */
+@layer base {
+  input,
+  select,
+  textarea {
+    color: var(--fg);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--faint);
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
