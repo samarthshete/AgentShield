@@ -1,0 +1,26 @@
+# Render blueprint for the AgentShield API (container).
+# The static frontend deploys separately on Vercel (see web/vercel.json + docs/DEPLOY.md).
+services:
+  - type: web
+    name: agentshield-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # App listens on 8000 (see Dockerfile CMD); keep PORT aligned for Render routing.
+      - key: PORT
+        value: "8000"
+      # Required to protect the API. Set the value in the Render dashboard (do not commit it).
+      - key: AGENTSHIELD_API_TOKEN
+        sync: false
+      # Must include the deployed Vercel origin, e.g. https://agentshield.vercel.app
+      - key: AGENTSHIELD_CORS_ORIGINS
+        sync: false
+      # Optional — only needed for the OpenAI/Claude dynamic-simulation judge.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CLAUDE_API_KEY
+        sync: false
