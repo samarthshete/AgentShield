@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from agentshield.models.benchmark import BenchmarkSummary
 from agentshield.models.dynamic import DynamicScanResult, PolicyViolation
@@ -41,11 +41,14 @@ class BenchmarkResponse(BaseModel):
 
 
 class SimulateRequest(BaseModel):
+    # Reject unknown fields so credentials (e.g. an LLM API key) cannot be smuggled
+    # through the request body. Keys are resolved server-side from settings only.
+    model_config = ConfigDict(extra="forbid")
+
     scenario: str = "all"
     output_dir: str | None = None
     db_path: str | None = None
     judge: Literal["rule_based", "rule", "default", "openai", "claude"] = "rule_based"
-    llm_api_key: str | None = None
     llm_model: str = ""
     persist: bool = True
 
