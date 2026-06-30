@@ -3,11 +3,13 @@ from __future__ import annotations
 import uuid
 
 from agentshield.metrics.aggregator import (
+    aggregate_eval,
     _p95,
     aggregate_benchmark,
     aggregate_dynamic,
     aggregate_scan,
 )
+from agentshield.eval.scorer import EvalCategoryMetrics, EvalSummary
 from agentshield.metrics.report_writer import render_markdown
 from agentshield.metrics.rule_registry import build_rule_coverage, collect_rules
 from agentshield.models.benchmark import (
@@ -226,6 +228,39 @@ def test_aggregate_dynamic_clean() -> None:
     assert m.max_severity_seen is None
 
 
+def test_aggregate_eval_maps_summary() -> None:
+    summary = EvalSummary(
+        total_artifacts=2,
+        total_findings=3,
+        true_positives=1,
+        false_positives=1,
+        false_negatives=1,
+        precision=0.5,
+        precision_ci={"lower": 0.1, "upper": 0.9, "confidence": 0.95},
+        recall=0.5,
+        recall_ci={"lower": 0.1, "upper": 0.9, "confidence": 0.95},
+        f1=0.5,
+        category_breakdown={
+            "TOOL_POISONING": EvalCategoryMetrics(
+                category="TOOL_POISONING",
+                true_positives=1,
+                false_positives=1,
+                false_negatives=0,
+                precision=0.5,
+                recall=1.0,
+                f1=0.6667,
+            )
+        },
+    )
+
+    metrics = aggregate_eval(summary)
+
+    assert metrics.total_artifacts == 2
+    assert metrics.f1 == 0.5
+    assert metrics.precision_ci["lower"] == 0.1
+    assert metrics.category_breakdown["TOOL_POISONING"]["true_positives"] == 1
+
+
 def _make_minimal_metrics() -> ProjectMetrics:
     return ProjectMetrics(
         generated_at="2026-01-01T00:00:00+00:00",
@@ -269,6 +304,7 @@ def test_render_markdown_contains_headings() -> None:
         "## Static Scan",
         "## Benchmark Performance",
         "## Dynamic Simulation",
+        "## Independent Evaluation",
         "## Rule Coverage",
         "## Cost and Routing",
         "## Data Sources",

@@ -1,0 +1,11 @@
+artifact: challenge-up-drift-08.yaml
+case_type: positive
+provenance: "Authored challenge fixture for filesystem/network capability co-location and maintenance-mode spoofing."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-001
+    severity: HIGH
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["maintenance mode:"]

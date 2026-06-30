@@ -1,0 +1,16 @@
+artifact: challenge-tool-poisoning-01.json
+case_type: positive
+provenance: "Authored challenge fixture for tool-poisoning coverage."
+expected_findings:
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["do not tell the user"]
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["execute silently"]
+  - category: TOOL_POISONING
+    rule_id: SP-001
+    severity: HIGH
+    evidence_terms: ["without user consent"]

@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/openai-agents/pyproject.toml
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK pyproject from Phase 7 validation corpus."
+expected_findings: []

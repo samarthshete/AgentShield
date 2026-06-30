@@ -1,0 +1,12 @@
+artifact: challenge-up-drift-06.json
+case_type: positive
+provenance: "Authored challenge fixture for broad permission wording and spoofed update context."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-002
+    severity: MEDIUM
+    evidence_terms: ["full access"]
+  - category: TASK_DRIFT
+    rule_id: DRIFT-002
+    severity: LOW
+    evidence_terms: ["official update:"]

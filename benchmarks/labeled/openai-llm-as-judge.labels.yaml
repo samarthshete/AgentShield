@@ -1,0 +1,4 @@
+artifact: ../phase7_public_artifacts/openai-agents/examples.agent_patterns.llm_as_a_judge.py
+case_type: hard_negative
+provenance: "Public OpenAI Agents SDK LLM-as-a-judge example from Phase 7 final expansion pass."
+expected_findings: []

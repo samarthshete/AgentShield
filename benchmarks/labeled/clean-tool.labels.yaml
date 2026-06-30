@@ -1,0 +1,4 @@
+artifact: clean-tool.json
+case_type: hard_negative
+provenance: "Seed clean label authored from existing negative benchmark pattern."
+expected_findings: []

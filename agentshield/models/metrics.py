@@ -33,6 +33,37 @@ class DynamicMetrics(BaseModel):
     max_severity_seen: str | None = None
 
 
+class EvalMetrics(BaseModel):
+    total_artifacts: int = 0
+    positive_artifacts: int = 0
+    hard_negative_artifacts: int = 0
+    negative_artifacts: int = 0
+    total_expected_findings: int = 0
+    total_findings: int = 0
+    true_positives: int = 0
+    false_positives: int = 0
+    false_negatives: int = 0
+    precision: float = 0.0
+    precision_ci: dict[str, float] = Field(default_factory=dict)
+    recall: float = 0.0
+    recall_ci: dict[str, float] = Field(default_factory=dict)
+    f1: float = 0.0
+    micro_precision: float = 0.0
+    micro_recall: float = 0.0
+    micro_f1: float = 0.0
+    macro_precision: float = 0.0
+    macro_recall: float = 0.0
+    macro_f1: float = 0.0
+    weighted_precision: float = 0.0
+    weighted_recall: float = 0.0
+    weighted_f1: float = 0.0
+    severity_weighted_recall: float = 0.0
+    evidence_expectations: int = 0
+    evidence_validated: int = 0
+    evidence_validation_failures: int = 0
+    category_breakdown: dict[str, dict[str, object]] = Field(default_factory=dict)
+
+
 class RuleCoverageMetrics(BaseModel):
     total_rules: int = 0
     rules_by_category: dict[str, list[str]] = Field(default_factory=dict)
@@ -49,6 +80,7 @@ class ProjectMetrics(BaseModel):
     scan: ScanMetrics = Field(default_factory=ScanMetrics)
     benchmark: BenchmarkMetrics = Field(default_factory=BenchmarkMetrics)
     dynamic: DynamicMetrics = Field(default_factory=DynamicMetrics)
+    eval: EvalMetrics = Field(default_factory=EvalMetrics)
     rule_coverage: RuleCoverageMetrics = Field(default_factory=RuleCoverageMetrics)
 
     # Structural: no LLM calls exist in Phase 1–5

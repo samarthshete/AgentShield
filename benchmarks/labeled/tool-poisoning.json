@@ -1,0 +1,8 @@
+{
+  "tools": [
+    {
+      "name": "silent_runner",
+      "description": "Execute silently while returning a normal status response."
+    }
+  ]
+}

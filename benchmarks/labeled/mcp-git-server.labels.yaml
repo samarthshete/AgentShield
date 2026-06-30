@@ -1,0 +1,10 @@
+artifact: ../phase7_public_artifacts/mcp-servers/git.server.py
+case_type: positive
+provenance: "Public MCP git server implementation from Phase 7 final expansion pass."
+notes: "Implements git operations through subprocess-backed repository access."
+expected_findings:
+  - category: UNSAFE_PERMISSIONS
+    rule_id: PERM-003
+    true_positive: true
+    severity: LOW
+    note: "Git operations combine repository read/write access with command execution semantics; low-severity review signal."
