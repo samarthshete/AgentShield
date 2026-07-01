@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agentshield.config import settings
-from agentshield.detect.semantic import Disposition, confirm_findings
+from agentshield.detect.semantic import Disposition, build_llm_confirmer, confirm_findings
 from agentshield.models.finding import Finding
 from agentshield.models.scan import ScanRun
 from agentshield.models.target import ScannedTarget
@@ -46,6 +46,11 @@ def run_static_scan(
     use_semantic = (
         settings.agentshield_semantic_enabled if semantic_enabled is None else semantic_enabled
     )
+    llm_confirmer = None
+    llm_budget = 0
+    if use_semantic and settings.agentshield_semantic_backend == "llm":
+        llm_confirmer = build_llm_confirmer()
+        llm_budget = settings.agentshield_semantic_llm_budget
 
     scan_id = uuid.uuid4().hex
     started = datetime.now(timezone.utc)
@@ -73,7 +78,13 @@ def run_static_scan(
             )
         )
         rule_results = run_all_rules(scan_text, permission_blob=perm_blob)
-        for rr, confirmation in confirm_findings(rule_results, scan_text, enabled=use_semantic):
+        for rr, confirmation in confirm_findings(
+            rule_results,
+            scan_text,
+            enabled=use_semantic,
+            llm_confirmer=llm_confirmer,
+            llm_budget=llm_budget,
+        ):
             finding = _rule_to_finding(rr, str(fp))
             finding.is_confirmed = confirmation.disposition == Disposition.CONFIRM
             findings.append(finding)

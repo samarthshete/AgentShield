@@ -16,7 +16,11 @@ class Settings(BaseSettings):
     # Semantic confirmation tier: context-aware disposition over static rule candidates.
     # Default on — it raises precision (fewer prose false positives) while staying recall-safe.
     agentshield_semantic_enabled: bool = True
+    # "deterministic" (default, offline, no cost) or "llm" (escalate uncertain cases to an LLM;
+    # requires OPENAI_API_KEY/CLAUDE_API_KEY). The LLM tier is off unless explicitly selected.
     agentshield_semantic_backend: str = "deterministic"
+    # Max LLM confirmation calls per scan when backend="llm" (cost cap).
+    agentshield_semantic_llm_budget: int = 20
     claude_api_key: str = ""
     openai_api_key: str = ""
 
