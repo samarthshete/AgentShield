@@ -27,6 +27,15 @@ type MetricsResponse = {
     rule_coverage: {
       total_rules: number;
     };
+    eval: {
+      total_artifacts: number;
+      false_positives: number;
+      micro_precision: number;
+      micro_recall: number;
+      micro_f1: number;
+      precision_ci: { lower?: number; upper?: number };
+      recall_ci: { lower?: number; upper?: number };
+    };
   };
 };
 
@@ -63,6 +72,17 @@ function formatPassRate(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
+function pct(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function ciLabel(ci: { lower?: number; upper?: number }): string {
+  if (ci.lower === undefined || ci.upper === undefined) {
+    return "—";
+  }
+  return `${pct(ci.lower)}–${pct(ci.upper)}`;
+}
+
 function formatDateLabel(iso: string): string {
   return new Date(iso).toLocaleString();
 }
@@ -82,7 +102,7 @@ export function DashboardPage() {
     setError(null);
     try {
       const [metrics, scans, dynamic] = await Promise.all([
-        fetchJson<MetricsResponse>("/api/metrics"),
+        fetchJson<MetricsResponse>("/api/metrics?eval_suite=benchmarks/labeled"),
         fetchJson<ScanHistoryResponse>("/api/history/scans?limit=5"),
         fetchJson<DynamicHistoryResponse>("/api/history/dynamic?limit=25"),
       ]);
@@ -218,18 +238,32 @@ export function DashboardPage() {
             <p className="mt-1 text-xs">Rules active in current static policy set.</p>
           </Card>
 
-          <Card title="Benchmark Pass Rate">
+          <Card title="Detection Accuracy (labeled eval)">
             <p className="text-2xl font-semibold text-[var(--fg)]">
-              {formatPassRate(data.metrics.benchmark.pass_rate)}
+              F1 {data.metrics.eval.total_artifacts > 0 ? pct(data.metrics.eval.micro_f1) : "—"}
             </p>
-            <p className="mt-1 text-xs">
-              {data.metrics.benchmark.passed}/{data.metrics.benchmark.total_cases} cases passed
-            </p>
-            {data.metrics.benchmark.failed > 0 ? (
-              <div className="mt-2">
-                <Badge variant="warning">{data.metrics.benchmark.failed} failed</Badge>
-              </div>
-            ) : null}
+            {data.metrics.eval.total_artifacts > 0 ? (
+              <>
+                <p className="mt-1 text-xs">
+                  Precision {pct(data.metrics.eval.micro_precision)} (95% CI {ciLabel(data.metrics.eval.precision_ci)})
+                  {" • "}Recall {pct(data.metrics.eval.micro_recall)} (95% CI {ciLabel(data.metrics.eval.recall_ci)})
+                </p>
+                <p className="mt-2 text-xs text-[var(--muted)]">
+                  {data.metrics.eval.total_artifacts} labeled artifacts • {data.metrics.eval.false_positives} false positives.
+                  Mixed public + authored fixtures — a dev benchmark, not a market-wide accuracy claim.
+                </p>
+                <div className="mt-2">
+                  <Badge variant="neutral">
+                    smoke: {data.metrics.benchmark.passed}/{data.metrics.benchmark.total_cases} benchmark cases
+                  </Badge>
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Eval suite unavailable • smoke: {formatPassRate(data.metrics.benchmark.pass_rate)}{" "}
+                ({data.metrics.benchmark.passed}/{data.metrics.benchmark.total_cases} cases)
+              </p>
+            )}
           </Card>
 
           <Card title="Dynamic Scenario Summary">

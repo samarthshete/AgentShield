@@ -197,9 +197,15 @@ def _case_type(label: LabeledArtifact) -> str:
     return "negative"
 
 
-def _score_artifact(labels_path: Path, label: LabeledArtifact) -> EvalArtifactResult:
+def _score_artifact(
+    labels_path: Path,
+    label: LabeledArtifact,
+    semantic_enabled: bool | None = None,
+) -> EvalArtifactResult:
     artifact_path = (labels_path.parent / label.artifact).resolve()
-    _scan_run, findings, _targets = run_static_scan(str(artifact_path))
+    _scan_run, findings, _targets = run_static_scan(
+        str(artifact_path), semantic_enabled=semantic_enabled
+    )
 
     expected_true = [item for item in label.expected_findings if item.true_positive]
     matched_label_indexes: set[int] = set()
@@ -332,9 +338,12 @@ def _weighted_mean(category_metrics: list[EvalCategoryMetrics], field: str) -> f
     )
 
 
-def run_labeled_eval(directory: Path) -> EvalSummary:
+def run_labeled_eval(directory: Path, semantic_enabled: bool | None = None) -> EvalSummary:
     labeled_artifacts = load_label_suite(directory)
-    results = [_score_artifact(path, label) for path, label in labeled_artifacts]
+    results = [
+        _score_artifact(path, label, semantic_enabled=semantic_enabled)
+        for path, label in labeled_artifacts
+    ]
 
     tp = sum(result.true_positives for result in results)
     fp = sum(result.false_positives for result in results)

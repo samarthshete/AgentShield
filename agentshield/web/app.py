@@ -22,7 +22,7 @@ from agentshield.policy.policy_engine import evaluate_trace
 from agentshield.reporting.json_report import build_scan_payload, write_json_report
 from agentshield.reporting.markdown_report import write_markdown_report
 from agentshield.reporting.severity import severity_rank
-from agentshield.services.scan_service import run_static_scan
+from agentshield.services.scan_service import run_static_scan, run_static_scan_on_text
 from agentshield.storage.sqlite_store import (
     get_dynamic_run_details,
     get_scan_run_details,
@@ -128,8 +128,17 @@ def run_scan(request: ScanRequest) -> ScanResponse:
     out_dir = Path(request.output_dir or settings.agentshield_output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    has_content = request.content is not None and request.content.strip() != ""
+    if not has_content and not request.path:
+        raise HTTPException(status_code=422, detail="Provide either 'path' or 'content' to scan.")
+
     try:
-        scan_run, findings, targets = run_static_scan(request.path)
+        if has_content:
+            scan_run, findings, targets = run_static_scan_on_text(
+                request.content or "", filename=request.filename
+            )
+        else:
+            scan_run, findings, targets = run_static_scan(request.path or "")
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

@@ -5,6 +5,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from agentshield.config import settings
+from agentshield.detect.semantic import Disposition, confirm_findings
 from agentshield.models.finding import Finding
 from agentshield.models.scan import ScanRun
 from agentshield.models.target import ScannedTarget
@@ -33,10 +35,17 @@ def _rule_to_finding(rr: RuleResult, affected_path: str) -> Finding:
     )
 
 
-def run_static_scan(target_path: str) -> tuple[ScanRun, list[Finding], list[ScannedTarget]]:
+def run_static_scan(
+    target_path: str,
+    semantic_enabled: bool | None = None,
+) -> tuple[ScanRun, list[Finding], list[ScannedTarget]]:
     root = Path(target_path).resolve()
     if not root.exists():
         raise FileNotFoundError(f"Target not found: {root}")
+
+    use_semantic = (
+        settings.agentshield_semantic_enabled if semantic_enabled is None else semantic_enabled
+    )
 
     scan_id = uuid.uuid4().hex
     started = datetime.now(timezone.utc)
@@ -63,8 +72,11 @@ def run_static_scan(target_path: str) -> tuple[ScanRun, list[Finding], list[Scan
                 target_kind=kind,
             )
         )
-        for rr in run_all_rules(scan_text, permission_blob=perm_blob):
-            findings.append(_rule_to_finding(rr, str(fp)))
+        rule_results = run_all_rules(scan_text, permission_blob=perm_blob)
+        for rr, confirmation in confirm_findings(rule_results, scan_text, enabled=use_semantic):
+            finding = _rule_to_finding(rr, str(fp))
+            finding.is_confirmed = confirmation.disposition == Disposition.CONFIRM
+            findings.append(finding)
 
     duration_ms = int((time.perf_counter() - t0) * 1000)
     completed = datetime.now(timezone.utc)
@@ -83,4 +95,38 @@ def run_static_scan(target_path: str) -> tuple[ScanRun, list[Finding], list[Scan
         high_or_critical_count=hc,
         overall_risk_score=risk,
     )
+    return scan_run, findings, targets
+
+
+def _safe_filename(filename: str) -> str:
+    """Reduce a user-supplied name to a bare, extension-preserving basename."""
+    name = Path(filename or "pasted-config.txt").name.strip() or "pasted-config.txt"
+    return name
+
+
+def run_static_scan_on_text(
+    content: str,
+    filename: str = "pasted-config.txt",
+    semantic_enabled: bool | None = None,
+) -> tuple[ScanRun, list[Finding], list[ScannedTarget]]:
+    """Scan an in-memory config/text blob by materializing it in a temp dir.
+
+    Lets the hosted API scan a user's pasted content without exposing the server filesystem —
+    it reuses the exact same rule + confirmer pipeline as :func:`run_static_scan`.
+    """
+    import tempfile
+
+    safe_name = _safe_filename(filename)
+    with tempfile.TemporaryDirectory(prefix="agentshield-paste-") as tmp:
+        target = Path(tmp) / safe_name
+        target.write_text(content or "", encoding="utf-8")
+        scan_run, findings, targets = run_static_scan(str(target), semantic_enabled=semantic_enabled)
+
+    # Present the logical name rather than the ephemeral temp path.
+    scan_run.target_path = safe_name
+    for target_row in targets:
+        target_row.target_name = safe_name
+        target_row.target_path = safe_name
+    for finding in findings:
+        finding.affected_component = safe_name
     return scan_run, findings, targets

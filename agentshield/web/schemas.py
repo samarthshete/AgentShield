@@ -13,7 +13,10 @@ from agentshield.models.target import ScannedTarget
 
 
 class ScanRequest(BaseModel):
-    path: str
+    # Provide either a server-side `path` or inline `content` to scan (content takes precedence).
+    path: str | None = None
+    content: str | None = None
+    filename: str = "pasted-config.txt"
     format: Literal["json", "markdown", "both"] = "both"
     output_dir: str | None = None
     db_path: str | None = None
