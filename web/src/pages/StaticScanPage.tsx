@@ -6,6 +6,8 @@ import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { LoadingState } from "../components/ui/LoadingState";
+import { SeverityBar } from "../components/ui/SeverityBar";
+import { StatTile } from "../components/ui/StatTile";
 import { postJson } from "../lib/api";
 
 type OutputFormat = "json" | "markdown" | "both";
@@ -50,6 +52,17 @@ function severityVariant(severity: string): "danger" | "warning" | "info" | "neu
     return "info";
   }
   return "neutral";
+}
+
+function severityBorderColor(severity: string): string {
+  const map: Record<string, string> = {
+    CRITICAL: "var(--sev-critical-fg)",
+    HIGH: "var(--sev-high-fg)",
+    MEDIUM: "var(--sev-medium-fg)",
+    LOW: "var(--sev-low-fg)",
+    INFO: "var(--sev-info-fg)",
+  };
+  return map[severity.toUpperCase()] ?? "transparent";
 }
 
 function formatDateLabel(iso: string | null): string {
@@ -292,25 +305,18 @@ export function StaticScanPage() {
       {result ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card title="Findings Summary">
-              <p className="text-2xl font-semibold text-[var(--fg)]">{result.scan_run.findings_count}</p>
-              <p className="mt-1 text-xs">
-                High/Critical: {result.scan_run.high_or_critical_count} • Risk: {result.scan_run.overall_risk_score}
-              </p>
-            </Card>
-
+            <StatTile label="Findings" value={result.scan_run.findings_count} />
+            <StatTile
+              label="High / Critical"
+              value={result.scan_run.high_or_critical_count}
+              accent={result.scan_run.high_or_critical_count > 0}
+              sub="needs review"
+            />
+            <StatTile label="Risk score" value={result.scan_run.overall_risk_score} sub="/ 100 weighted" />
             <Card title="Severity Breakdown">
-              <div className="flex flex-wrap gap-1.5">
-                {severityBreakdown.length > 0 ? (
-                  severityBreakdown.map((item) => (
-                    <Badge key={item.severity} variant={severityVariant(item.severity)}>
-                      {item.severity}: {item.count}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs">No findings</span>
-                )}
-              </div>
+              <SeverityBar
+                counts={Object.fromEntries(severityBreakdown.map((i) => [i.severity, i.count]))}
+              />
             </Card>
 
             <Card title="Category Breakdown">
@@ -447,7 +453,10 @@ export function StaticScanPage() {
                   <tbody>
                     {filteredFindings.map((finding) => (
                       <tr key={finding.id} className="border-b border-[var(--border)] align-top">
-                        <td className="p-2">
+                        <td
+                          className="p-2"
+                          style={{ borderLeft: `3px solid ${severityBorderColor(finding.severity)}` }}
+                        >
                           <Badge variant={severityVariant(finding.severity.toUpperCase())}>
                             {finding.severity.toUpperCase()}
                           </Badge>
