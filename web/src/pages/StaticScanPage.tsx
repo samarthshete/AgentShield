@@ -59,24 +59,43 @@ function formatDateLabel(iso: string | null): string {
   return new Date(iso).toLocaleString();
 }
 
+type InputMode = "path" | "paste";
+
+type ScanRequestBody = {
+  path?: string;
+  content?: string;
+  filename?: string;
+  format: OutputFormat;
+  fail_on: FailOnSeverity;
+  persist: boolean;
+};
+
 async function runScan(request: {
-  path: string;
+  path?: string;
+  content?: string;
+  filename?: string;
   format: OutputFormat;
   fail_on: FailOnSeverity;
 }): Promise<ScanResponse> {
-  return postJson<ScanResponse, { path: string; format: OutputFormat; fail_on: FailOnSeverity; persist: boolean }>(
-    "/api/scan",
-    {
-      path: request.path,
-      format: request.format,
-      fail_on: request.fail_on,
-      persist: true,
-    }
-  );
+  const body: ScanRequestBody = {
+    format: request.format,
+    fail_on: request.fail_on,
+    persist: true,
+  };
+  if (request.content && request.content.trim()) {
+    body.content = request.content;
+    body.filename = request.filename?.trim() || "pasted-config.txt";
+  } else {
+    body.path = request.path;
+  }
+  return postJson<ScanResponse, ScanRequestBody>("/api/scan", body);
 }
 
 export function StaticScanPage() {
+  const [inputMode, setInputMode] = useState<InputMode>("path");
   const [targetPath, setTargetPath] = useState("benchmarks/fixtures");
+  const [pastedContent, setPastedContent] = useState("");
+  const [pastedFilename, setPastedFilename] = useState("agent.json");
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("both");
   const [failOn, setFailOn] = useState<FailOnSeverity>("high");
   const [verboseView, setVerboseView] = useState(false);
@@ -141,7 +160,9 @@ export function StaticScanPage() {
     setLoading(true);
     try {
       const response = await runScan({
-        path: targetPath.trim(),
+        path: inputMode === "path" ? targetPath.trim() : undefined,
+        content: inputMode === "paste" ? pastedContent : undefined,
+        filename: pastedFilename,
         format: outputFormat,
         fail_on: failOn,
       });
@@ -166,16 +187,55 @@ export function StaticScanPage() {
     >
       <Card title="Run Static Scan">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={onSubmit}>
-          <label className="md:col-span-2">
-            <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Target Path</span>
-            <input
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
-              value={targetPath}
-              onChange={(event) => setTargetPath(event.target.value)}
-              placeholder="benchmarks/fixtures"
-              required
-            />
-          </label>
+          <div className="md:col-span-2 inline-flex w-fit rounded-md border border-[var(--border)] p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setInputMode("path")}
+              className={`rounded px-3 py-1 ${inputMode === "path" ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "text-[var(--muted)]"}`}
+            >
+              Server path
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode("paste")}
+              className={`rounded px-3 py-1 ${inputMode === "paste" ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "text-[var(--muted)]"}`}
+            >
+              Paste config
+            </button>
+          </div>
+
+          {inputMode === "path" ? (
+            <label className="md:col-span-2">
+              <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Target Path</span>
+              <input
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
+                value={targetPath}
+                onChange={(event) => setTargetPath(event.target.value)}
+                placeholder="benchmarks/fixtures"
+              />
+            </label>
+          ) : (
+            <>
+              <label className="md:col-span-2">
+                <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Filename (for context)</span>
+                <input
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--fg)]"
+                  value={pastedFilename}
+                  onChange={(event) => setPastedFilename(event.target.value)}
+                  placeholder="agent.json"
+                />
+              </label>
+              <label className="md:col-span-2">
+                <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Config content</span>
+                <textarea
+                  className="h-40 w-full rounded-md border border-[var(--border)] bg-[var(--field)] px-3 py-2 font-mono text-xs text-[var(--fg)]"
+                  value={pastedContent}
+                  onChange={(event) => setPastedContent(event.target.value)}
+                  placeholder={'{\n  "tools": [\n    { "name": "run", "description": "..." }\n  ]\n}'}
+                />
+              </label>
+            </>
+          )}
 
           <label>
             <span className="mb-1 block text-xs font-medium text-[var(--fg)]">Output Format</span>
