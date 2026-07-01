@@ -2,6 +2,10 @@
 
 **AgentShield** is a security **linter** for tool-using AI agents and MCP-style configs. It scans configurations and agent/tool traces to **detect and flag** risky patterns — tool poisoning, prompt-injection phrasing, over-broad permissions, and exfiltration signals — so you can review them before shipping. It surfaces risk; it does **not** sandbox or block agents at runtime.
 
+**Live demo:** web console at https://agent-shield-topaz.vercel.app (API on Render). The
+Static Scan page has a **Paste config** mode — paste an agent/tool config and scan it directly,
+no install required. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for current status.
+
 ## What it detects
 
 | Category | Example |
@@ -14,18 +18,26 @@
 
 ## How detection works (and its limits)
 
-AgentShield is a **two-tier heuristic linter**, not a runtime guardrail:
+AgentShield is a **heuristic linter**, not a runtime guardrail:
 
 - **Tier 1 — static rules:** case-insensitive substring/regex matching against a
-  curated phrase set (see `agentshield/rules/`). Fast, offline, deterministic.
-- **Tier 2 — optional LLM judge:** an OpenAI/Claude pass that filters likely
-  false positives (`--judge openai|claude`).
+  curated phrase set (see `agentshield/rules/`). Fast, offline, deterministic, high-recall.
+- **Tier 2 — semantic confirmer** (`agentshield/detect/semantic.py`, on by default): a
+  context-aware pass that dispositions each rule candidate `confirm` / `dismiss` / `uncertain`
+  by the text *around* the matched marker. It is **recall-safe** — it only suppresses
+  HIGH/CRITICAL "secret leak" findings whose context is clearly benign (e.g. `"set your API
+  key in the env var"`), and leaves ambiguous cases in place. Deterministic and offline by
+  default; an optional LLM backend (`AGENTSHIELD_SEMANTIC_BACKEND=llm` + a key) can escalate
+  only the `uncertain` cases, injection-hardened and budget-capped.
+- **Dynamic-sim judge — optional:** a separate OpenAI/Claude pass that filters false positives
+  in the `simulate` command (`--judge openai|claude`).
 
 **Known limitations — read before relying on this:**
 
 - Tier-1 matching is **evadable** by paraphrase, obfuscation (`ign0re previous`),
-  encoding (base64), or non-English text. Treat findings as *review prompts*, not proof.
-- Detection is **lexical, not semantic** — it does not understand intent.
+  encoding (base64), or non-English text; the deterministic confirmer reduces prose false
+  positives but does not close this gap. Treat findings as *review prompts*, not proof.
+- Tier-1/2 without the LLM backend are **lexical/heuristic, not deep semantic** — limited intent understanding.
 - The `simulate` command replays **scripted** fixtures; it is a regression harness,
   not evidence against real adversarial agents.
 - This tool **does not enforce anything at runtime.** A non-zero exit is a CI signal,

@@ -1,6 +1,8 @@
 # AgentShield — Implementation Status
 
-> Snapshot from a direct source read on 2026-06-29. `pytest` → **116 passed**.
+> Snapshot from a direct source read on 2026-07-01. Backend `pytest` → **129 passed**;
+> frontend `vitest` → **7 passed**. Live on Render (API) + Vercel (web) — see
+> [PROJECT_STATUS.md](./PROJECT_STATUS.md).
 > "Done" = code exists, is wired, and is covered by tests or a working build.
 
 ---
@@ -23,8 +25,14 @@
 | LLM judges: rule-based default + OpenAI + Claude | `dynamic/llm_judge.py` | `test_dynamic.py` |
 | Metrics aggregation + rule registry + MD writer | `metrics/*.py` | `test_metrics.py` (17) |
 | CI workflows (lint/test + self-scan gate + PR comment) | `.github/workflows/*.yml` | n/a (CI) |
-| FastAPI API (8 endpoints) + token auth + config-driven CORS | `web/app.py`, `web/schemas.py` | `test_web_api.py` (8) |
-| React console (6 pages, live-wired, builds clean) | `web/src/**` | ❌ none |
+| FastAPI API (8 endpoints) + token auth + config-driven CORS + inline-content scan | `web/app.py`, `web/schemas.py` | `test_web_api.py` |
+| **Semantic confirmer** (context-aware confirm/dismiss/uncertain over rule candidates, recall-safe) | `agentshield/detect/semantic.py` | `test_semantic.py` |
+| Self-serve scanning: scan pasted config content (no server path) | `services/scan_service.py` (`run_static_scan_on_text`), `web/src/pages/StaticScanPage.tsx` | `test_web_api.py`, `test_semantic.py` |
+| Honest dashboard hero: labeled-eval F1/precision/recall + Wilson CI | `web/src/pages/DashboardPage.tsx`, `metrics/aggregator.py` | build |
+| Light/dark theme toggle (token-driven, localStorage, system default) | `web/src/lib/theme.ts`, `components/ui/ThemeToggle.tsx` | `theme.test.ts` |
+| React console (7 pages incl. Settings, live-wired, builds clean) | `web/src/**` | `lib/*.test.ts` (7) |
+| CI: python lint/test/eval + frontend build/test | `.github/workflows/ci.yml` | n/a (CI) |
+| Production deployment: Render (API) + Vercel (web) + local compose | `Dockerfile`, `docker-compose.yml`, `render.yaml`, `web/vercel.json`, `docs/DEPLOY.md` | `docker compose` smoke test |
 | Phase 7 validation corpus (29 artifacts) + results | `benchmarks/phase7_public_artifacts/`, `docs/internal/phase7/` | n/a |
 
 ## 2. Partially completed features
@@ -44,15 +52,16 @@
 No outright **broken** code was found — the suite is green and the build passes. The
 "incomplete" items are scope gaps, not bugs:
 
-- **No production deployment** path of any kind.
+- (Resolved) Production deployment now exists — Render (API) + Vercel (web) + local
+  `docker-compose.yml`; see `docs/DEPLOY.md`.
 
 ## 4. Missing core features
 
 | Missing | Why it matters | Priority |
 |---|---|---|
 | Independent precision/recall corpus expansion | Detection credibility is still unproven on non-self-authored data | **P0** |
-| Semantic / LLM-primary detection mode | Substring rules are paraphrase-evadable + noisy in prose | **P1** |
-| Frontend tests | UI regressions are invisible | P1 |
+| Deep semantic / LLM-primary detection | Deterministic confirmer shipped; LLM tier built but flag-off (`feat/llm-confirmer-tier`) — enabling + measuring a genuine corpus precision gain is still open | P1 |
+| Frontend page-render tests (RTL) | Lib tests (api/settings/theme) + CI build gate exist; per-page render tests still missing | P2 |
 
 ## 5. Technical debt
 
@@ -69,7 +78,7 @@ No outright **broken** code was found — the suite is green and the build passe
 | # | Item | Severity | Location |
 |---|---|---|---|
 | 1 | ~~Open API + `CORS allow_origins=["*"]`~~ — fixed: `AGENTSHIELD_API_TOKEN` gate (timing-safe) + config-driven CORS + server-side-only LLM keys (`extra="forbid"`) | Resolved | `web/app.py` |
-| 2 | Detection is substring/regex only (evadable, noisy) | Medium (product) | `rules/*` |
+| 2 | Rules are substring/regex (evadable); mitigated by the recall-safe semantic confirmer for prose false positives, but paraphrase/encoding evasion remains open (LLM tier addresses it, flag-off) | Medium (product) | `rules/*`, `detect/semantic.py` |
 | 3 | No FK/indexes → possible orphan rows | Low | `storage/sqlite_store.py` |
 | 4 | `JudgeVerdict.notes` dropped on persist | Low | `storage/sqlite_store.py` |
 
