@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     agentshield_api_token: str = ""
     # Comma-separated list of allowed CORS origins for the web API.
     agentshield_cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    # Semantic confirmation tier: context-aware disposition over static rule candidates.
+    # Default on — it raises precision (fewer prose false positives) while staying recall-safe.
+    agentshield_semantic_enabled: bool = True
+    agentshield_semantic_backend: str = "deterministic"
     claude_api_key: str = ""
     openai_api_key: str = ""
 

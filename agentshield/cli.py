@@ -349,6 +349,10 @@ def eval_cmd(
         help="Exit non-zero if overall F1 is below this threshold",
     ),
     verbose: bool = typer.Option(False, help="Print per-artifact detail"),
+    compare: bool = typer.Option(
+        False,
+        help="Also run rules-only (semantic confirmer off) and print the precision delta",
+    ),
 ) -> None:
     """Run an independent labeled evaluation suite."""
     from agentshield.eval.scorer import run_labeled_eval
@@ -359,6 +363,16 @@ def eval_cmd(
         raise typer.Exit(code=2)
 
     summary = run_labeled_eval(suite_path)
+
+    if compare:
+        baseline = run_labeled_eval(suite_path, semantic_enabled=False)
+        console.print(
+            "[bold]Rules-only vs hybrid (semantic confirmer)[/bold]\n"
+            f"  rules-only: FP={baseline.false_positives} "
+            f"P/R/F1 = {baseline.micro_precision:.4f}/{baseline.micro_recall:.4f}/{baseline.micro_f1:.4f}\n"
+            f"  hybrid:     FP={summary.false_positives} "
+            f"P/R/F1 = {summary.micro_precision:.4f}/{summary.micro_recall:.4f}/{summary.micro_f1:.4f}"
+        )
 
     table = Table(title="Labeled Evaluation")
     table.add_column("Metric")

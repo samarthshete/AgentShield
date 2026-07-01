@@ -5,6 +5,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from agentshield.config import settings
+from agentshield.detect.semantic import Disposition, confirm_findings
 from agentshield.models.finding import Finding
 from agentshield.models.scan import ScanRun
 from agentshield.models.target import ScannedTarget
@@ -33,10 +35,17 @@ def _rule_to_finding(rr: RuleResult, affected_path: str) -> Finding:
     )
 
 
-def run_static_scan(target_path: str) -> tuple[ScanRun, list[Finding], list[ScannedTarget]]:
+def run_static_scan(
+    target_path: str,
+    semantic_enabled: bool | None = None,
+) -> tuple[ScanRun, list[Finding], list[ScannedTarget]]:
     root = Path(target_path).resolve()
     if not root.exists():
         raise FileNotFoundError(f"Target not found: {root}")
+
+    use_semantic = (
+        settings.agentshield_semantic_enabled if semantic_enabled is None else semantic_enabled
+    )
 
     scan_id = uuid.uuid4().hex
     started = datetime.now(timezone.utc)
@@ -63,8 +72,11 @@ def run_static_scan(target_path: str) -> tuple[ScanRun, list[Finding], list[Scan
                 target_kind=kind,
             )
         )
-        for rr in run_all_rules(scan_text, permission_blob=perm_blob):
-            findings.append(_rule_to_finding(rr, str(fp)))
+        rule_results = run_all_rules(scan_text, permission_blob=perm_blob)
+        for rr, confirmation in confirm_findings(rule_results, scan_text, enabled=use_semantic):
+            finding = _rule_to_finding(rr, str(fp))
+            finding.is_confirmed = confirmation.disposition == Disposition.CONFIRM
+            findings.append(finding)
 
     duration_ms = int((time.perf_counter() - t0) * 1000)
     completed = datetime.now(timezone.utc)
