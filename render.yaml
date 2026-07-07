@@ -9,6 +9,13 @@ services:
     plan: free
     healthCheckPath: /api/health
     autoDeploy: true
+    # Persistent storage for the SQLite DB + reports (Dockerfile puts them under /data).
+    # NOTE: Render disks require a PAID instance — on the free plan `/data` is ephemeral and
+    # scan history resets on redeploy/sleep. To persist, upgrade `plan` above and uncomment:
+    # disk:
+    #   name: agentshield-data
+    #   mountPath: /data
+    #   sizeGB: 1
     envVars:
       # App listens on 8000 (see Dockerfile CMD); keep PORT aligned for Render routing.
       - key: PORT
