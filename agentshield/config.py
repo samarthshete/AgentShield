@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     agentshield_semantic_backend: str = "deterministic"
     # Max LLM confirmation calls per scan when backend="llm" (cost cap).
     agentshield_semantic_llm_budget: int = 20
+    # Only honor an LLM *dismiss* at or above this confidence (recall safety).
+    agentshield_semantic_llm_min_dismiss_confidence: float = 0.8
     claude_api_key: str = ""
     openai_api_key: str = ""
 

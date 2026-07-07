@@ -84,6 +84,7 @@ def run_static_scan(
             enabled=use_semantic,
             llm_confirmer=llm_confirmer,
             llm_budget=llm_budget,
+            llm_min_dismiss_confidence=settings.agentshield_semantic_llm_min_dismiss_confidence,
         ):
             finding = _rule_to_finding(rr, str(fp))
             finding.is_confirmed = confirmation.disposition == Disposition.CONFIRM

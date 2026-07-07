@@ -57,6 +57,26 @@
 - ⚠️ **Caveat:** this is now a credible development benchmark, but still not a broad
   market-wide accuracy claim because part of the corpus is authored challenge data.
 
+### Semantic confirmer: deterministic vs LLM tier (measured 2026-07-06)
+The static rules → **semantic confirmer** pipeline was measured on the labeled corpus. Reproduce
+with `AGENTSHIELD_SEMANTIC_BACKEND=<backend> python -m agentshield eval benchmarks/labeled`.
+
+| Tier | FP | FN | micro F1 |
+|---|---|---|---|
+| Deterministic (default, shipped) | 2 | 0 | **0.9808** |
+| LLM (`gpt-4o-mini`), no guardrail | 0 | **11** | 0.8791 |
+| LLM, severity + confidence guardrails | 2 | 1 | 0.9709 |
+
+**Honest conclusion:** the LLM tier is **not a net win on this corpus** and is kept **off by
+default**. Its only precision opportunity here is the 2 low-severity `EXF-003` README-URL false
+positives — but those are genuinely ambiguous (the labels themselves treat some README URLs as
+true positives), so allowing the LLM to dismiss them costs recall (unguarded: 11 dropped TPs;
+guarded: still 1 confidently-mis-dismissed HIGH TP). The deterministic tier at F1 0.9808 remains
+the best available. A real precision gain would require a stronger model and/or a corpus that
+actually contains HIGH-severity *prose* false positives (which the deterministic tier already
+handles). The guardrails (only dismiss HIGH/CRITICAL, only above a confidence threshold) exist so
+that enabling the tier degrades gracefully rather than tanking recall.
+
 ### Phase 7 real-world validation (`agentshield-output/phase7-final-expansion-pass/summary.json`)
 - **29 public artifacts** scanned (MCP servers, agent examples, READMEs).
 - **10 findings total:** EXF-003 ×5, EXF-001 ×1, EXF-002 ×1, PERM-001 ×1, PERM-003 ×2.

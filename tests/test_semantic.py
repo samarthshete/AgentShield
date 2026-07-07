@@ -142,6 +142,45 @@ def test_confirm_findings_escalates_only_uncertain_within_budget() -> None:
     assert len(no_budget) == 1 and no_budget[0][1].backend == "deterministic"
 
 
+def _fake_caller_conf(disposition: str, confidence: float):
+    def caller(_system: str, _user: str) -> str:
+        return json.dumps({"disposition": disposition, "confidence": confidence, "rationale": "t"})
+
+    return caller
+
+
+def test_llm_never_dismisses_low_severity_recall_guardrail() -> None:
+    # A LOW candidate the LLM would dismiss must NOT be escalated/dropped (recall safety).
+    low = RuleResult(
+        rule_id="EXF-003",
+        category="DATA_EXFILTRATION_PATTERN",
+        severity="LOW",
+        title="Network primitive",
+        evidence="https://",
+    )
+    kept = confirm_findings(
+        [low],
+        "See docs at https://example.com for details.",
+        enabled=True,
+        llm_confirmer=LLMConfirmer(_fake_caller("dismiss")),
+        llm_budget=5,
+    )
+    assert len(kept) == 1  # low-severity is never LLM-dismissed
+    assert kept[0][1].backend == "deterministic"  # not even escalated
+
+
+def test_llm_dismiss_below_confidence_threshold_is_kept() -> None:
+    kept = confirm_findings(
+        [_critical_secret()],
+        "The tool accepts an api key input.",  # deterministically uncertain, HIGH-severity
+        enabled=True,
+        llm_confirmer=LLMConfirmer(_fake_caller_conf("dismiss", 0.5)),
+        llm_budget=5,
+        llm_min_dismiss_confidence=0.8,
+    )
+    assert len(kept) == 1  # low-confidence dismiss ignored, finding kept
+
+
 def test_llm_prompt_is_injection_hardened() -> None:
     # Red-team structural guard: content is delimited DATA and the system prompt forbids
     # following instructions inside it.
