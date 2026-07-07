@@ -4,7 +4,7 @@
 > live URLs) as the final step of any work batch, and commit it. Detailed breakdowns live in
 > the linked docs; this page is the at-a-glance source of truth.
 >
-> **Last updated:** 2026-07-02
+> **Last updated:** 2026-07-06
 
 ## Live deployment
 | Surface | URL | Notes |
@@ -23,23 +23,26 @@ CORS: `AGENTSHIELD_CORS_ORIGINS` on Render must list the exact Vercel origin. Ru
   **Paste config** mode — a visitor can scan their own agent/tool config, not just server paths.
 - **Honest dashboard hero:** shows labeled-eval **F1 / precision / recall + Wilson 95% CI** with a
   caveat; the 9/9 benchmark is a secondary "smoke" badge (no longer the headline).
-- **LLM confirmation tier (optional, flag OFF):** escalates only `uncertain` cases to an LLM
-  (`AGENTSHIELD_SEMANTIC_BACKEND=llm` + a key); tiered, injection-hardened, fail-safe, budget-capped.
+- **LLM confirmation tier (optional, flag OFF):** escalates only HIGH/CRITICAL `uncertain` cases to
+  an LLM; tiered, injection-hardened, fail-safe, budget-capped, with severity + confidence recall
+  guardrails. **Measured** (`gpt-4o-mini`): it does *not* beat the deterministic baseline on the
+  corpus (see [`METRICS_AND_OUTCOMES.md`](./METRICS_AND_OUTCOMES.md)) — kept off by default.
 - **Flagship UI:** Static Scan uses KPI stat tiles + a severity-distribution bar + severity-accented
   findings rows (`components/ui/SeverityBar.tsx`, `StatTile.tsx`) — verified live.
 - **Console:** 7 pages incl. Settings; **light/dark theme** toggle; live connection indicator.
 - **API:** 8 endpoints, token auth, config-driven CORS, server-side-only LLM keys.
+- **Persistence:** SQLite with FK cascades + indexes on FK/ordering columns; Render disk path
+  documented in `render.yaml` (needs a paid plan — free `/data` is ephemeral).
 - **CI:** python lint/test/eval + frontend build/test. **Deploy:** Render + Vercel + local `docker-compose.yml`.
-- **Tests:** 134 backend + 7 frontend passing; ruff clean.
+- **Tests:** 136 backend + 12 frontend (incl. RTL page tests) passing; ruff clean.
 
 ## Open PRs
-- `docs/project-status-tracker` — superseded by this file; safe to close.
-- (Phases 1–5 + docs all merged to `main` and live.)
+- None from this work — all merged to `main` and live; stale branches cleaned up.
 
-## Next up
-1. Enable + measure the LLM tier on the corpus for a genuine precision gain (currently flag-off).
-2. Frontend page-render tests (Vitest + RTL, P2).
-3. Persistence hardening for hosting (Render disk or Postgres + FK constraints).
+## Next up (research / paid-tier)
+1. A genuine LLM-tier precision gain needs a stronger model and/or a corpus with HIGH-severity
+   *prose* false positives (the deterministic tier already handles those we have).
+2. Persistent scan history in production (Render paid disk or Postgres + the FK schema).
 
 ## Conventions
 - Commits authored by `samarthshete`; **no** AI/co-author trailer and **no "Claude"** in messages.
