@@ -289,6 +289,7 @@ def confirm_findings(
     enabled: bool = True,
     llm_confirmer: LLMConfirmer | None = None,
     llm_budget: int = 0,
+    llm_min_dismiss_confidence: float = 0.0,
 ) -> list[tuple[RuleResult, Confirmation]]:
     """Apply the confirmer to rule candidates.
 
@@ -298,6 +299,10 @@ def confirm_findings(
     Tiered routing: the deterministic confirmer runs first; only candidates it leaves
     ``uncertain`` are escalated to ``llm_confirmer`` (up to ``llm_budget`` calls), bounding cost
     and giving a real routing rate. The deterministic tier's confident confirm/dismiss are trusted.
+
+    Recall-safety guardrail: only HIGH/CRITICAL uncertain candidates are escalated, so the LLM can
+    never dismiss the ambiguous low-severity findings. This was measured: without the guardrail,
+    gpt-4o-mini over-dismisses low-severity URL findings (corpus recall 1.0 -> 0.78, F1 -> 0.88).
     """
     if not enabled:
         return [
@@ -319,9 +324,22 @@ def confirm_findings(
             conf.disposition == Disposition.UNCERTAIN
             and llm_confirmer is not None
             and llm_used < llm_budget
+            and severity_rank(rr.severity) >= _DISMISS_MIN_RANK
         ):
-            conf = llm_confirmer.confirm(rr, context)
+            llm_conf = llm_confirmer.confirm(rr, context)
             llm_used += 1
+            # Only act on a confident LLM dismiss; otherwise keep the finding.
+            if (
+                llm_conf.disposition == Disposition.DISMISS
+                and llm_conf.confidence < llm_min_dismiss_confidence
+            ):
+                llm_conf = Confirmation(
+                    disposition=Disposition.UNCERTAIN,
+                    confidence=llm_conf.confidence,
+                    rationale="LLM dismiss below confidence threshold; kept",
+                    backend=llm_conf.backend,
+                )
+            conf = llm_conf
         if conf.disposition == Disposition.DISMISS:
             continue
         kept.append((rr, conf))

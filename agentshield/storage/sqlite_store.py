@@ -54,7 +54,8 @@ def init_sqlite(db_path: str | Path) -> None:
             affected_component TEXT,
             recommendation TEXT,
             rule_id TEXT,
-            is_confirmed INTEGER NOT NULL DEFAULT 0
+            is_confirmed INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (scan_run_id) REFERENCES scan_runs(id) ON DELETE CASCADE
         )
         """
     )
@@ -65,7 +66,8 @@ def init_sqlite(db_path: str | Path) -> None:
             scan_run_id TEXT NOT NULL,
             target_name TEXT NOT NULL,
             target_path TEXT NOT NULL,
-            target_kind TEXT NOT NULL
+            target_kind TEXT NOT NULL,
+            FOREIGN KEY (scan_run_id) REFERENCES scan_runs(id) ON DELETE CASCADE
         )
         """
     )
@@ -98,10 +100,22 @@ def init_sqlite(db_path: str | Path) -> None:
             evidence TEXT,
             step_seq INTEGER,
             recommendation TEXT,
-            status TEXT DEFAULT 'confirmed'
+            status TEXT DEFAULT 'confirmed',
+            FOREIGN KEY (dynamic_run_id) REFERENCES dynamic_scan_runs(id) ON DELETE CASCADE
         )
         """
     )
+    conn.commit()
+
+    # Indexes on foreign-key + ordering columns (safe on existing DBs; speeds history reads).
+    for index_sql in (
+        "CREATE INDEX IF NOT EXISTS idx_findings_scan_run_id ON findings(scan_run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_targets_scan_run_id ON scanned_targets(scan_run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_violations_dynamic_run_id ON policy_violations(dynamic_run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_scan_runs_started_at ON scan_runs(started_at)",
+        "CREATE INDEX IF NOT EXISTS idx_dynamic_runs_ran_at ON dynamic_scan_runs(ran_at)",
+    ):
+        cur.execute(index_sql)
     conn.commit()
 
     _ensure_columns(
