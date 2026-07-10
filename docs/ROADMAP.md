@@ -27,8 +27,8 @@
 |---|---|---|---|
 | Build an **independent labeled corpus** (real MCP servers/agent repos, human-labeled true/false) | In progress | `benchmarks/labeled/` | 50 labeled artifacts now; next expand public-only subset |
 | Compute **real precision/recall/F1** on that corpus | Done for current corpus | `eval/scorer.py`, `metrics/` | Current 50-artifact numbers in [METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md) |
-| Make `.py`/`.ts` first-class in directory scans | **Done locally** | `parser/discovery.py` | Dir scan covers source files and still skips vendor/build dirs |
-| First **frontend tests** (Vitest + RTL) per page | P1 | `web/src/**`, new `*.test.tsx` | Happy/empty/error path per page green in CI |
+| Make `.py`/`.ts` first-class in directory scans | **Done** | `parser/discovery.py` | Dir scan covers source files and still skips vendor/build dirs |
+| First **frontend tests** (Vitest + RTL) per page | **Done** (Static Scan + Dashboard; extend to remaining pages) | `web/src/pages/*.test.tsx` | Happy/empty/error paths green in CI |
 
 **Risks:** real precision/recall may expose weak detection — that's the point; budget for
 rule/semantic work in response.
@@ -39,10 +39,10 @@ rule/semantic work in response.
 
 | Task | Priority | Files | DoD |
 |---|---|---|---|
-| API auth (API key/JWT) + explicit CORS allowlist behind a deploy flag | P0 (if hosting) | `web/app.py`, `config.py` | Unauthed requests rejected; origins restricted |
-| Dockerfile + compose (API + static frontend) | P1 | new `Dockerfile`, `compose.yaml` | `docker compose up` serves API + UI |
+| API auth (token) + explicit CORS allowlist | **Done** | `web/app.py`, `config.py` | Unauthed requests → 401; origins from `AGENTSHIELD_CORS_ORIGINS` |
+| Dockerfile + compose (API + static frontend) | **Done** (+ live Render/Vercel deploy) | `Dockerfile`, `docker-compose.yml`, `render.yaml`, `web/vercel.json` | `docker compose up` serves API + UI |
 | Structured logging honoring `agentshield_log_level` | P1 | `config.py`, new `logging` setup | Configurable JSON logs |
-| SQLite FKs + indexes, or migrate to Postgres + Alembic | P2 | `storage/` | Referential integrity enforced |
+| SQLite FKs + indexes | **Done** (Postgres/Alembic deferred until hosted persistence is needed) | `storage/sqlite_store.py` | FK cascades + indexes on FK/ordering columns |
 | Publish CLI to PyPI; add pre-commit hook | P2 | `pyproject.toml`, new hook | `pip install agentshield` works |
 
 **Risks:** auth + Postgres introduce real ops surface; only do if hosting is decided.
@@ -53,7 +53,7 @@ rule/semantic work in response.
 
 | Task | Priority | Files | DoD |
 |---|---|---|---|
-| **Semantic detection mode** (LLM-primary or embedding similarity) behind a flag | **P1** | `rules/` or new `detect/semantic.py` | Flagged mode beats rules-only F1 on the labeled corpus |
+| **Semantic detection mode** | **Shipped + measured** — deterministic confirmer on by default (F1 98.08%); LLM tier flag-off because `gpt-4o-mini` doesn't beat it ([METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md)). Open: a net-win tier (stronger model / harder corpus) | `detect/semantic.py` | Flagged mode beats deterministic F1 on the labeled corpus |
 | Per-**instance** LLM dismissal (not per `policy_id`) | P2 | `llm_judge.py`, `storage/` | Repeated IDs dismissed individually |
 | Real agent-trace ingestion (replace/supplement scripted sim) | P2 | `dynamic/`, `policy/` | Can evaluate a captured real trace |
 | Shared LLM HTTP base; official SDKs; retries/backoff | P2 | `llm_judge.py` | Duplication removed; transient failures retried |
@@ -90,9 +90,11 @@ flowchart LR
     P3 --> P4
 ```
 
-**The single most important next step is Phase 1's independent validation** — everything
-else (semantic mode, hosting, launch) depends on knowing whether detection is actually
-good. Build the labeled corpus and measure before adding features.
+**Status (2026-07-09):** Phase 1's validation exists (50-artifact labeled corpus, micro F1
+98.08%), Phase 2's production readiness largely shipped (auth, Docker, FKs/indexes, live
+Render + Vercel deploy), and Phase 3's semantic mode shipped and was measured (LLM tier not
+a net win → flag-off). **The single most important next step is expanding the public-only
+share of the labeled corpus** so accuracy claims generalize beyond authored challenge data.
 
 ---
 
@@ -112,8 +114,8 @@ good. Build the labeled corpus and measure before adding features.
 |---|---|---|---|---|---|---|
 | `.env` → `.gitignore`; verify history clean | **Done locally** | Low | `.gitignore` | — | `.env` ignored; no key in `git log` | n/a (hygiene) |
 | **F1** labeled eval harness + P/R/F1 | Done for current corpus | Low-Med | `benchmarks/labeled/`, `eval/scorer.py`, `cli.py`, `metrics/*`, `ci.yml` | corpus | `agentshield eval` prints P/R/F1; in CI | **micro F1 98.08% on 50 artifacts; 2 known FPs** |
-| **F2** hybrid rules+semantic engine | **P0-P1** | Med-High | `detect/semantic.py`, `services/*`, `models/finding.py`, `storage/`, `reporting/*` | F1 | hybrid F1 > rules-only F1, measured | **hybrid vs rules F1**, real `llm_routing_rate` |
-| **F3** prod API: auth+logging+OTel+Docker | **P1** | Med | `web/app.py`, `config.py`, `observability/*`, `Dockerfile`, `ci.yml` | — | unauthed→401; traces emit; `docker run` works | **p50/p95 latency, LLM cost/scan** |
+| **F2** hybrid rules+semantic engine | **Done + measured** | Med-High | `detect/semantic.py`, `services/*` | F1 | deterministic tier shipped (F1 98.08%); LLM tier measured, **not a net win** → flag-off | **measured 2026-07-06** ([METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md)) |
+| **F3** prod API: auth+Docker (logging/OTel still open) | Partially done | Med | `web/app.py` ✅, `config.py` ✅, `Dockerfile` ✅; `observability/*` ❌ | — | unauthed→401 ✅; `docker run` works ✅; live on Render/Vercel ✅; traces ❌ | p50/p95 latency, LLM cost/scan — **not measured yet** |
 
 **Risk:** F1 may expose weak detection — that's the point; F2 is the response.
 
@@ -123,9 +125,9 @@ good. Build the labeled corpus and measure before adding features.
 
 | Task | Priority | Difficulty | Files | DoD | Metric |
 |---|---|---|---|---|---|
-| **F7** frontend tests + CI build gate | P1 | Low-Med | `web/src/**`, `ci.yml` | per-page happy/empty/error green | frontend coverage % |
-| **F6** Postgres + FKs/indexes + Alembic | P1 | Med | `storage/`, new migrations | referential integrity enforced | orphan-row count = 0 |
-| **F5** source-file scanning (`.py/.ts/.js`) | **Done locally** | Low-Med | `parser/discovery.py` | dir scan covers source and skips vendor/build dirs | findings on code corpus |
+| **F7** frontend tests + CI build gate | **Done** (lib + Static Scan/Dashboard RTL; extend to remaining pages) | Low-Med | `web/src/**`, `ci.yml` | per-page happy/empty/error green | frontend coverage % |
+| **F6** FKs/indexes | **Done in SQLite**; Postgres + Alembic deferred until hosted persistence | Med | `storage/sqlite_store.py` | referential integrity enforced ✅ | orphan-row count = 0 |
+| **F5** source-file scanning (`.py/.ts/.js`) | **Done** | Low-Med | `parser/discovery.py` | dir scan covers source and skips vendor/build dirs | findings on code corpus |
 | **F8** cached semantic verdicts | P2 | Low-Med | `detect/semantic.py`, cache iface | repeat scan avoids LLM call | cache hit rate |
 | Persist `JudgeVerdict.notes` | P2 | Low | `storage/sqlite_store.py` | notes survive restart | n/a |
 

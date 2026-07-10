@@ -23,8 +23,9 @@ container (hosted on Render). They communicate over HTTPS, gated by a shared tok
 3. Deploy, then confirm: `curl https://<api>.onrender.com/api/health` → `{"status":"ok",...}`.
 
 > Note: the free plan sleeps on idle; the first request after a sleep is slow. SQLite lives on
-> the container's ephemeral disk — add a Render Disk (or move to Postgres) if you need scan
-> history to survive restarts.
+> the container's ephemeral disk — a Render Disk mount is documented in `render.yaml`
+> (requires a paid plan), or move to Postgres, if you need scan history to survive restarts.
+> The schema already enforces FK cascades + indexes either way.
 
 ## 2. Web on Vercel
 1. Vercel dashboard → **Add New → Project** → import this repo.

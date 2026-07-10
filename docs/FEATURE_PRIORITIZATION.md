@@ -1,5 +1,13 @@
 # AgentShield — Feature Prioritization
 
+> **Status update (2026-07-09):** the "must build now" tier is done — **F1** labeled eval
+> (micro F1 98.08% on 50 artifacts, gated in CI), **F2** semantic engine (deterministic
+> confirmer on by default; LLM tier built + measured, flag-off — not a net win), **F3**
+> partially (token auth + Docker + live Render/Vercel deploy; logging/OTel still open).
+> From the "after MVP" tier, **F5** (source-file scanning), **F6** (FKs/indexes, in
+> SQLite), and **F7** (frontend tests) are done. Scores below are kept as the original
+> planning record.
+
 > Ranked future features grounded in the codebase. Scoring model (each sub-score 1–5):
 >
 > ```

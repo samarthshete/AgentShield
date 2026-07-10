@@ -1,7 +1,9 @@
 # AgentShield — Product Document
 
 > Product framing derived from the codebase, `PROJECT.md`, and `DECISIONS.md` on
-> 2026-06-24. Companion: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md).
+> 2026-06-24; status refreshed 2026-07-09. Companion: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md).
+> The product is now **live**: https://agent-shield-topaz.vercel.app (self-serve paste-config
+> scanning, no install).
 
 ---
 
@@ -78,9 +80,9 @@ All six map directly to the Phase-1 success criteria in `PROJECT.md` §14.
 | P2 | Dynamic simulation + policy engine | ✅ Done (scripted) |
 | P2 | LLM judge (noise reduction) | ✅ Done (OpenAI primary) |
 | P2 | Web console | ✅ Done (F1–F9) |
-| **P0 (next)** | **Independent validation / real precision-recall** | In progress (50 labeled artifacts) |
-| **P1 (next)** | **Semantic detection mode** | ❌ Missing |
-| P2 (next) | `.env` gitignore + API auth before hosting | ❌ Missing |
+| **P0 (next)** | **Independent validation / real precision-recall** | ✅ Measured (micro F1 98.08% on 50 labeled artifacts); expand public-only subset |
+| **P1** | **Semantic detection mode** | ✅ Shipped (deterministic confirmer, on by default); LLM tier built + measured, flag-off (not a net win) |
+| P2 | `.env` gitignore + API auth before hosting | ✅ Done (token auth, config-driven CORS; live on Render + Vercel) |
 
 ## 8. Product workflows
 

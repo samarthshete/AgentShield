@@ -2,19 +2,21 @@
 
 > Only real, source-backed numbers appear as measured. Everything unproven is marked
 > **Not measured yet** — no invented figures. Sources: `reports/metrics.json`,
-> `agentshield-output/phase7-final-expansion-pass/summary.json`, live `pytest` run on
-> 2026-06-29, and direct source inspection.
+> `agentshield-output/phase7-final-expansion-pass/summary.json`, live `pytest`/`vitest`
+> runs on 2026-07-09, and direct source inspection.
 
 ---
 
 ## 1. Measured outcomes currently in the codebase
 
-### Test suite (live run, 2026-06-29)
-- **116 tests passed**, 0 failed, ~1.5s (`pytest -q`).
-- Breakdown: `test_dynamic.py` 48, `test_metrics.py` 17, `test_rules.py` 12,
-  `test_exit_codes.py` 8, `test_benchmark_runner.py` 5, `test_eval.py` 9,
-  `test_web_api.py` 5, `test_discovery.py` 3,
-  `test_benchmark_loader.py` 3, `test_mcp_parser.py` 3, `test_reporting.py` 3.
+### Test suite (live run, 2026-07-09)
+- Backend: **136 tests passed**, 0 failed, ~1.7s (`pytest -q`).
+- Breakdown: `test_dynamic.py` 48, `test_metrics.py` 17, `test_semantic.py` 16,
+  `test_rules.py` 12, `test_web_api.py` 9, `test_eval.py` 9, `test_exit_codes.py` 8,
+  `test_benchmark_runner.py` 5, `test_discovery.py` 3, `test_benchmark_loader.py` 3,
+  `test_mcp_parser.py` 3, `test_reporting.py` 3.
+- Frontend: **12 tests passed** across 5 files (`vitest`): lib tests
+  (`api`/`settings`/`theme`) + RTL page-render tests (`StaticScanPage`, `DashboardPage`).
 
 ### Benchmark suite (`reports/metrics.json`)
 - **9/9 cases passed → 100% pass rate.**
@@ -115,11 +117,11 @@ measured behavioral rates. Documented as such in the repo-root `DECISIONS.md`.
 
 | Metric | Now | How to measure |
 |---|---|---|
-| Test count / pass rate | **116 / 100%** ✅ | `pytest` (already in CI) |
+| Test count / pass rate | **136 backend + 12 frontend / 100%** ✅ | `pytest` + `vitest` (both in CI) |
 | Code coverage % | **Not measured** | `pytest --cov=agentshield`; gate in `ci.yml` |
-| Frontend test coverage | **0% (no tests)** | Add Vitest + RTL; report coverage |
+| Frontend test coverage | 12 tests (lib + 2 RTL page suites); coverage % **not measured** | `vitest --coverage`; extend RTL to remaining pages |
 | Lint cleanliness | tracked ✅ | `ruff` in `ci.yml` |
-| Build health (frontend) | green ✅ | `npm run build` (manual; add to CI) |
+| Build health (frontend) | green ✅, gated in CI | `npm run build` in `ci.yml` |
 | Mean time to green CI | **Not measured** | GitHub Actions analytics |
 
 ## 5. Suggested benchmark tests to generate defensible metrics
@@ -138,9 +140,10 @@ measured behavioral rates. Documented as such in the repo-root `DECISIONS.md`.
    positives?) + latency + cost.
 6. **Coverage gate.** Add `pytest --cov` with a minimum threshold in `ci.yml`.
 
-> Until #1 exists, AgentShield can honestly claim **"11 rules, 5 categories, 103 passing
-> tests, 100% on a 9-case self-authored benchmark, validated for noise on 29 public
-> artifacts"** — and must **not** claim a precision/recall figure, because none is measured.
+> #1 now exists (§1, "Labeled evaluation corpus"). The honest current claim is: **"11 rules,
+> 5 categories, 136 + 12 passing tests, micro F1 98.08% (recall 100%) on a 50-artifact labeled
+> corpus"** — with the caveat that part of the corpus is authored challenge data, so it is a
+> development benchmark, not a market-wide accuracy claim.
 
 ---
 
@@ -162,7 +165,7 @@ measured behavioral rates. Documented as such in the repo-root `DECISIONS.md`.
 ### From Feature 2 (hybrid rules+semantic engine)
 | Outcome | Status | Test that produces it |
 |---|---|---|
-| **Hybrid F1 − rules-only F1** (the headline lift) | **Not measured yet** | Run F1 harness in `--mode rules` then `--mode hybrid`, compare |
+| **Hybrid F1 − rules-only F1** (the headline lift) | **Measured 2026-07-06** (§1, "Deterministic vs LLM tier"): LLM tier does **not** beat the deterministic confirmer (0.9709 guarded vs 0.9808) — kept off | `AGENTSHIELD_SEMANTIC_BACKEND=<backend> agentshield eval benchmarks/labeled` |
 | Real `llm_routing_rate` (escalated ÷ candidates) | **Not measured yet** | Instrument triage in `services/scan_service.py`; replace hardcoded `0.0` in `metrics/aggregator.py:129` |
 | Semantic-cache hit rate | **Not measured yet** | Count cache hits/misses in `detect/semantic.py` |
 | Recall gain on paraphrased/obfuscated attacks | **Not measured yet** | Adversarial benchmark (F10): rules-only vs hybrid catch rate |

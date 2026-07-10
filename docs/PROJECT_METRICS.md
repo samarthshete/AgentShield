@@ -1,6 +1,6 @@
 # AgentShield — Project Metrics
 
-*Generated: 2026-04-03T22:45:45.160140+00:00  |  Version: 0.1.0*
+*Generated: 2026-07-10T01:05:46.046395+00:00  |  Version: 0.1.0*
 
 > All values are computed from real scan, benchmark, and simulation runs. No values are hardcoded or estimated.
 
@@ -32,10 +32,10 @@
 | Passed | 9 |
 | Failed | 0 |
 | Pass rate | 100% |
-| Avg scan time (ms) | 0.0 |
-| P95 scan time (ms) | 0.0 |
-| Avg scan time (s) | 0.0000 |
-| P95 scan time (s) | 0.0000 |
+| Avg scan time (ms) | 0.1 |
+| P95 scan time (ms) | 1.0 |
+| Avg scan time (s) | 0.0001 |
+| P95 scan time (s) | 0.0010 |
 
 ### Category Breakdown
 
@@ -55,6 +55,26 @@
 | Total policy violations detected | 25 |
 | Categories covered | DATA_EXFILTRATION_PATTERN, INDIRECT_PROMPT_INJECTION, TASK_DRIFT, TOOL_POISONING, UNSAFE_PERMISSIONS |
 | Max severity seen | CRITICAL |
+
+## Independent Evaluation
+
+| Metric | Value |
+| --- | --- |
+| Labeled artifacts | 50 |
+| Positive artifacts | 23 |
+| Hard negatives | 27 |
+| Expected findings | 51 |
+| Total findings | 53 |
+| True positives | 51 |
+| False positives | 2 |
+| False negatives | 0 |
+| Micro precision / recall / F1 | 96% / 100% / 98% |
+| Precision Wilson 95% CI | 87%-99% |
+| Recall Wilson 95% CI | 93%-100% |
+| Macro precision / recall / F1 | 97% / 100% / 98% |
+| Weighted precision / recall / F1 | 97% / 100% / 98% |
+| Severity-weighted recall | 100% |
+| Evidence validations | 43/43 |
 
 ## Rule Coverage
 

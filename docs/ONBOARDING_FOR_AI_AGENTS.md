@@ -1,18 +1,21 @@
 # AgentShield — Onboarding for AI Agents
 
-> Read this first if you are a Claude / Cursor / Codex agent picking up this repo.
-> It is the fast path to being productive without breaking things. Verified 2026-06-24.
+> Read this first if you are an AI coding agent picking up this repo.
+> It is the fast path to being productive without breaking things. Verified 2026-07-09.
 
 ---
 
 ## 1. Project summary
 
 AgentShield is a **local-first Python security scanner for tool-using AI agents and MCP
-configs.** It (a) statically scans config/doc/text files for 5 threat categories using
-11 substring/regex rules, (b) runs scripted dynamic attack simulations through a policy
-engine, (c) benchmarks itself with YAML cases, (d) emits JSON/Markdown reports + SQLite
-history, and (e) exposes all of this via a Typer CLI, a thin FastAPI API, and a React
-console. Default path uses **no LLM**; OpenAI/Claude are optional judges.
+configs.** It (a) statically scans config/doc/source files for 5 threat categories using
+11 substring/regex rules plus a deterministic **semantic confirmer**, (b) runs scripted
+dynamic attack simulations through a policy engine, (c) benchmarks itself with YAML cases
+and a **50-artifact labeled eval corpus** (micro F1 98.08%), (d) emits JSON/Markdown
+reports + SQLite history, and (e) exposes all of this via a Typer CLI, a token-gated
+FastAPI API, and a React console — **deployed live on Render (API) + Vercel (web)**.
+Default path uses **no LLM**; OpenAI/Claude are optional (dynamic-sim judge, and a
+flag-off LLM confirmation tier).
 
 Full context: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md) and
 [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -30,11 +33,12 @@ Full context: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md) and
 | `agentshield/dynamic/attack_generator.py`, `runtime_simulator.py` | Scripted scenarios |
 | `agentshield/dynamic/llm_judge.py` | `BaseJudge` + RuleBased/OpenAI/Claude |
 | `agentshield/eval/scorer.py`, `benchmarks/labeled/` | Labeled precision/recall/F1 evaluation harness and corpus |
+| `agentshield/detect/semantic.py` | Semantic confirmer (deterministic default + flag-off LLM backend) |
 | `agentshield/storage/sqlite_store.py` | Schema, migrations, persist + reads |
 | `agentshield/reporting/severity.py` | Severity rank + risk score |
 | `agentshield/web/app.py`, `web/schemas.py` | FastAPI endpoints + Pydantic I/O |
 | `web/src/App.tsx`, `web/src/lib/api.ts`, `web/src/pages/*` | Frontend routes + fetch + pages |
-| `tests/` | 116 tests — run before and after any change |
+| `tests/` | 136 tests — run before and after any change |
 | repo-root `DECISIONS.md`, `CURRENT_STATE.md` | Deep rationale + phase log (gitignored) |
 
 ## 3. How to run locally
@@ -56,8 +60,9 @@ uvicorn agentshield.web.app:app --reload   # http://127.0.0.1:8000
 cd web && npm install && npm run dev        # http://127.0.0.1:5173
 
 # Tests + lint (do this before committing)
-.venv/bin/pytest -q                         # expect: 103 passed
+.venv/bin/pytest -q                         # expect: 136 passed
 ruff check agentshield tests
+cd web && npx vitest run                    # expect: 12 passed
 cd web && npm run build
 ```
 
@@ -76,10 +81,14 @@ cd web && npm run build
 
 ## 5. Current status
 
-Working v0.1.0. 103 tests green. CLI + API + UI functional. Rule set **frozen** after
-Phase 7. Main gaps: no independent precision/recall, substring-only detection, no
-frontend tests, and no auth/deploy. `.env` is ignored locally; verify this remains true
-before broad git adds. See
+Working v0.1.0, **live in production** (Render API + Vercel web). 136 backend + 12
+frontend tests green. Rule set **frozen** after Phase 7; a recall-safe semantic confirmer
+runs over rule candidates by default, and labeled-eval accuracy is measured (micro F1
+98.08%, recall 100%, on 50 artifacts). API is token-gated with config-driven CORS; SQLite
+has FK cascades + indexes. Main gaps: the labeled corpus still mixes in authored challenge
+data, the LLM tier is not a net win (flag-off), and prod scan history is ephemeral on the
+free Render plan. `.env` is ignored locally; verify this remains true before broad git
+adds. Canonical tracker: [PROJECT_STATUS.md](./PROJECT_STATUS.md); detail:
 [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md).
 
 ## 6. Coding conventions
@@ -129,9 +138,11 @@ before broad git adds. See
 
 1. **P0:** keep expanding the public-only share of the **labeled** corpus and use
    `agentshield eval benchmarks/labeled` for precision/recall
-   ([METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md) §5.1).
-2. **P1:** add frontend tests (Vitest + RTL), one happy/empty/error path per page.
-3. **P1:** prototype an opt-in semantic detection mode behind a flag.
-4. **P2:** refactor the two LLM judges onto a shared HTTP base; persist judge `notes`.
+   ([METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md)).
+2. **P1 (research):** a net-win LLM confirmation tier — stronger model and/or a corpus with
+   HIGH-severity prose false positives (guardrails already exist; tier stays flag-off).
+3. **P2:** persistent prod scan history (paid Render disk or Postgres).
+4. **P2:** RTL tests for the remaining pages; refactor the two LLM judges onto a shared
+   HTTP base; persist judge `notes`.
 
 See [ROADMAP.md](./ROADMAP.md) for the full plan.

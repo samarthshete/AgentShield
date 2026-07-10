@@ -4,6 +4,11 @@
 > (CLI-first Python, pure-function rules in `agentshield/rules/`, scripted dynamic
 > pipeline in `dynamic/` + `policy/`, SQLite in `storage/`, thin FastAPI in `web/app.py`,
 > React in `web/`). No tool is recommended for decoration. Scores are 1–10 fit.
+>
+> **Status (2026-07-09):** the deploy decision landed even lighter than this analysis —
+> Docker on **Render** (API) + static **Vercel** (web), consistent with the "avoid heavy
+> infra" verdicts below. OpenTelemetry remains the next justified addition; nothing from
+> the avoid-list was adopted.
 
 **TL;DR ranking (add in this order, only as justified):**
 `GitHub Actions (have it) → OpenTelemetry → Terraform → S3/R2 → AWS Lambda → Redis →

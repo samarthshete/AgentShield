@@ -1,7 +1,7 @@
 # AgentShield — Tech Stack
 
-> Verified against `pyproject.toml`, `web/package.json`, and source on 2026-06-24.
-> Verdict column is a brutally honest "appropriate / reconsider" call.
+> Verified against `pyproject.toml`, `web/package.json`, and source on 2026-06-24;
+> status refreshed 2026-07-09. Verdict column is a brutally honest "appropriate / reconsider" call.
 
 ---
 
@@ -44,16 +44,18 @@ boilerplate if the console grows.
 
 | Tech | Where | Why | Verdict |
 |---|---|---|---|
-| SQLite (single file) | `storage/sqlite_store.py` | Local-first, zero-config persistence; system of record | ✅ Appropriate for scope. ⚠️ No FK constraints/indexes declared; no concurrency story. Move to Postgres only if hosted/multi-user. |
+| SQLite (single file) | `storage/sqlite_store.py` | Local-first, zero-config persistence; system of record | ✅ Appropriate for scope. FK cascades + indexes on FK/ordering columns now declared (2026-07-06). Move to Postgres only if hosted/multi-user persistence is needed (Render free disk is ephemeral). |
 
 Schema migrations are hand-rolled additive `ALTER TABLE` via `_ensure_columns()` — fine
 now, but a migration tool (Alembic) would be needed if the schema grows or an ORM is added.
 
 ## 5. Auth
 
-**Not found in current codebase.** No auth framework, user model, sessions, or tokens.
-The only credentials are outbound LLM API keys in `.env`. **Verdict:** acceptable for
-local-only scope; a hard prerequisite (e.g. OAuth/JWT) before any deployment.
+**Shared-token gate** (`AGENTSHIELD_API_TOKEN`): every `/api/*` endpoint except
+`/api/health` requires `Authorization: Bearer <token>` or `X-API-Key` (timing-safe
+compare); CORS origins come from `AGENTSHIELD_CORS_ORIGINS`; LLM keys are resolved
+server-side only. No user model/sessions — single-operator by design. **Verdict:**
+✅ appropriate for a single-tenant deployed demo; OAuth/JWT only if it becomes multi-user.
 
 ## 6. Storage
 
@@ -63,17 +65,18 @@ Local filesystem only: reports under output dirs (`reports/`, `agentshield-outpu
 
 ## 7. Deployment
 
-**Not found** as automated infra. No Docker, Kubernetes, Vercel, Supabase, or AWS config.
-Deployment = local processes (`pip install -e .`, `uvicorn`, `npm run dev/build`).
-**Verdict:** matches stated scope, but production deployment is entirely unbuilt — see
-[ROADMAP.md](./ROADMAP.md) Phase 2. First step would be a Dockerfile + a hosted API with
-auth, or shipping the CLI to PyPI.
+**Live:** API as a Docker container on **Render** (`render.yaml`, `Dockerfile`, health
+check `/api/health`) and the web console as a static Vite build on **Vercel**
+(`web/vercel.json`); local parity via `docker-compose.yml`. Runbook:
+[DEPLOY.md](./DEPLOY.md). **Verdict:** ✅ fitting, honest infra for the scale. Remaining:
+free Render plan cold-starts and has an ephemeral disk (paid disk or Postgres for durable
+history); CLI still not on PyPI.
 
 ## 8. DevOps
 
 | Tool | Where | Purpose | Verdict |
 |---|---|---|---|
-| GitHub Actions `ci.yml` | `.github/workflows/` | ruff lint + pytest on push/PR | ✅ Solid |
+| GitHub Actions `ci.yml` | `.github/workflows/` | ruff lint + pytest + labeled eval + frontend build/test on push/PR | ✅ Solid |
 | GitHub Actions `scan.yml` | `.github/workflows/` | Self-scan + artifacts + PR comment + fail gate | ✅ Strong, dogfoods the product |
 | `.yamllint.yml` | repo root | Workflow YAML linting | ✅ Nice touch |
 | setuptools | `pyproject.toml` | Packaging (editable install) | ✅ Fine; not published to PyPI yet |
@@ -89,13 +92,14 @@ configuration and (if hosted) error tracking before production.
 
 | Tool | Where | Coverage | Verdict |
 |---|---|---|---|
-| pytest ≥8.3 | `tests/` | **103 tests, all green** across parser, rules, reporting, benchmarks, dynamic, metrics, exit codes, web API | ✅ Strong backend discipline |
+| pytest ≥8.3 | `tests/` | **136 tests, all green** across parser, rules, semantic confirmer, eval, reporting, benchmarks, dynamic, metrics, exit codes, web API | ✅ Strong backend discipline |
 | ruff ≥0.6 | CI + local | Lint | ✅ Appropriate |
-| **Frontend tests** | — | **None** | ❌ Gap — add Vitest + React Testing Library |
+| Vitest + React Testing Library | `web/src/**` | **12 tests**: lib (`api`/`settings`/`theme`) + RTL page renders (Static Scan, Dashboard) | ✅ In CI; extend RTL to remaining pages |
 
-Backend test count by file: `test_dynamic.py` (48), `test_metrics.py` (16),
-`test_rules.py` (12), `test_exit_codes.py` (8), `test_benchmark_runner.py` (5),
-`test_web_api.py` (5), `test_benchmark_loader.py`/`test_mcp_parser.py`/`test_reporting.py` (3 each).
+Backend test count by file: `test_dynamic.py` (48), `test_metrics.py` (17),
+`test_semantic.py` (16), `test_rules.py` (12), `test_web_api.py` (9), `test_eval.py` (9),
+`test_exit_codes.py` (8), `test_benchmark_runner.py` (5),
+`test_discovery.py`/`test_benchmark_loader.py`/`test_mcp_parser.py`/`test_reporting.py` (3 each).
 
 ## 11. AI / LLM tools
 
@@ -110,8 +114,10 @@ The judge abstraction (`BaseJudge`) is clean and provider-pluggable — a genuin
 ## 12. Stack-level verdict
 
 The stack is **deliberately minimal, internally consistent, and well-matched to a
-local-first CLI tool.** Strongest choices: stdlib-first backend (sqlite3/tomllib/urllib),
-Pydantic everywhere, pure-function rules, and dogfooding via `scan.yml`. The choices to
-**reconsider only if scope grows** are: hand-rolled HTTP for LLMs (→ official SDKs),
-constraint-free SQLite (→ FKs/indexes or Postgres), and the missing frontend test +
-logging/monitoring layers.
+local-first CLI tool that now also runs as a small deployed service.** Strongest choices:
+stdlib-first backend (sqlite3/tomllib/urllib), Pydantic everywhere, pure-function rules,
+dogfooding via `scan.yml`, and honest right-sized deploy (Render + Vercel, no Kubernetes).
+Since the original audit, FKs/indexes and frontend tests landed. The remaining choices to
+**reconsider only if scope grows**: hand-rolled HTTP for LLMs (→ official SDKs), SQLite on
+an ephemeral disk (→ paid disk or Postgres for durable hosted history), and the missing
+structured-logging/monitoring layer.

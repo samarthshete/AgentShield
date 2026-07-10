@@ -4,7 +4,8 @@
 > live URLs) as the final step of any work batch, and commit it. Detailed breakdowns live in
 > the linked docs; this page is the at-a-glance source of truth.
 >
-> **Last updated:** 2026-07-06
+> **Last updated:** 2026-07-09 (full docs/ sync to current outcomes; tests re-verified:
+> 136 backend + 12 frontend passing)
 
 ## Live deployment
 | Surface | URL | Notes |

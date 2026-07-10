@@ -1,8 +1,8 @@
 # AgentShield — Architecture
 
-> Detailed architecture, traced from source on 2026-06-24. File paths are clickable
-> references into the repo. Companion: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md).
-> (This file replaces the original one-paragraph Phase-1 stub.)
+> Detailed architecture, traced from source on 2026-06-24; refreshed 2026-07-09 (semantic
+> confirmer, FK schema, live deploy). File paths are clickable references into the repo.
+> Companion: [PROJECT_MASTER.md](./internal/PROJECT_MASTER.md).
 
 ---
 
@@ -12,7 +12,9 @@ AgentShield is a **layered, CLI-first Python application** with three entry surf
 (CLI, FastAPI, React) that all funnel into the same pure-function service core. There
 are two analysis pipelines:
 
-- **Static pipeline** — discover files → parse → run rules → score → report + persist.
+- **Static pipeline** — discover files → parse → run rules → **semantic confirmer**
+  (context-aware confirm/dismiss/uncertain over rule candidates,
+  `detect/semantic.py`) → score → report + persist.
 - **Dynamic pipeline** — generate scripted attack → simulate trace → policy-evaluate →
   (optional) LLM judge → report + persist.
 
@@ -46,10 +48,11 @@ flowchart TD
         DISC["discover_candidate_files()<br/>parser/discovery.py"]
         PARSE["parse_mcp_config()<br/>parser/mcp_parser.py"]
         RULES["run_all_rules()<br/>services/rule_runner.py"]
+        SEM["semantic confirmer<br/>detect/semantic.py"]
         SEV["severity scoring<br/>reporting/severity.py"]
     end
 
-    SCAN --> DISC --> PARSE --> RULES --> SEV
+    SCAN --> DISC --> PARSE --> RULES --> SEM --> SEV
 
     subgraph DynPipe["Dynamic pipeline"]
         GEN["attack_generator.py"]
@@ -92,8 +95,12 @@ flowchart TD
 3. `discover_candidate_files()` walks the tree (or returns the single file).
 4. For each file: `parse_mcp_config()` returns `scan_text` + `permission_blob` +
    normalized MCP surface.
-5. `run_all_rules(scan_text, permission_blob=...)` returns `RuleResult`s; each becomes
-   a `Finding`.
+5. `run_all_rules(scan_text, permission_blob=...)` returns `RuleResult`s; the **semantic
+   confirmer** (`detect/semantic.py`) dispositions each candidate
+   confirm/dismiss/uncertain from surrounding context (recall-safe: only clearly benign
+   HIGH/CRITICAL secret mentions are dismissed). Surviving candidates become `Finding`s.
+   With `AGENTSHIELD_SEMANTIC_BACKEND=llm` (flag-off by default), HIGH/CRITICAL
+   `uncertain` cases can escalate to an LLM under severity + confidence guardrails.
 6. `compute_overall_risk_score()` + `count_high_or_critical()` build the `ScanRun`.
 7. `persist_scan()` writes to SQLite (CLI always; API when `persist=True`).
 8. `build_scan_payload()` + report writers emit JSON/MD.
@@ -185,10 +192,9 @@ erDiagram
     }
 ```
 
-> Relationships above are **logical only** — `storage/sqlite_store.py` declares no
-> `FOREIGN KEY` columns (it sets `PRAGMA foreign_keys=ON` but never defines an FK), so
-> integrity is enforced by application code, not the DB. Unique indexes are also
-> absent. This is a known simplification, fine for single-user local use.
+> Relationships above are now **enforced by the DB** — `storage/sqlite_store.py` declares
+> `FOREIGN KEY` columns with cascades and indexes on FK/ordering columns (landed
+> 2026-07-06). `PRAGMA foreign_keys=ON` is set per connection.
 
 ## 8. Important modules and what each does
 
@@ -201,7 +207,8 @@ erDiagram
 | `rules/permission_checks.py` | `PERM-001/002/003` unsafe permission combos (PERM-003 context-gated) |
 | `rules/exfiltration_checks.py` | `EXF-001/002/003` exfil tiers (EXF-003 context-gated) |
 | `rules/drift_checks.py` | `DRIFT-001/002` task drift + context spoofing |
-| `services/scan_service.py` | Static orchestration → `ScanRun` + `Finding`s + targets |
+| `services/scan_service.py` | Static orchestration → `ScanRun` + `Finding`s + targets; `run_static_scan_on_text` powers self-serve paste-config scans |
+| `detect/semantic.py` | Semantic confirmer: deterministic context disposition of rule candidates + optional guarded LLM backend (flag-off) |
 | `services/rule_runner.py` | Runs all 5 rule modules; routes `permission_blob` to PERM rules |
 | `reporting/severity.py` | Severity rank, high/critical count, weighted 0–100 risk score |
 | `reporting/json_report.py`, `markdown_report.py` | Report rendering + PR comment |
@@ -239,19 +246,23 @@ flowchart LR
     GH["GitHub push/PR"] --> GHA["Actions: lint+test, scan"]
 ```
 
-No container, orchestrator, or cloud target exists. Runtime is whatever local process
-launches the CLI or `uvicorn`. The SQLite file is the shared system of record.
+Production deployment now exists: the API runs as a Docker container on **Render**
+(`render.yaml`, health check `/api/health`) and the console as a static Vite build on
+**Vercel**; local parity via `docker-compose.yml`. See [DEPLOY.md](./DEPLOY.md). The
+SQLite file remains the system of record (ephemeral on Render's free plan — paid disk or
+Postgres for durable history).
 
 ## 11. Failure points and how to improve them
 
 | # | Failure point | Impact | Improvement |
 |---|---|---|---|
-| 1 | Substring/regex detection | False pos/neg; paraphrase-evadable | Add semantic/LLM-primary detection mode |
-| 2 | Self-authored benchmarks + scripted sims | Overstates real accuracy | Validate on independent labeled corpus |
-| 3 | No FK constraints in SQLite | Orphan rows possible | Add FKs + indexes, or move to a real ORM |
-| 4 | Open API, `CORS *`, no auth | Unsafe if hosted | Add auth + tighten CORS before any deployment |
-| 5 | Synchronous web layer | No concurrency story | Async workers / job queue if hosted |
+| 1 | Substring/regex detection | Paraphrase-evadable | Mitigated: deterministic semantic confirmer (F1 98.08% on labeled corpus); LLM tier measured, not a net win yet — needs a stronger model / harder corpus |
+| 2 | Self-authored benchmarks + scripted sims | Overstates real accuracy | Partly addressed: 50-artifact labeled corpus; expand the public-only subset |
+| 3 | ~~No FK constraints in SQLite~~ | — | **Fixed:** FK cascades + indexes (2026-07-06) |
+| 4 | ~~Open API, `CORS *`, no auth~~ | — | **Fixed:** token auth + config-driven CORS |
+| 5 | Synchronous web layer | No concurrency story | Async workers / job queue if load grows |
 | 6 | `JudgeVerdict.notes` not persisted | Lost rationale | Add column + persist |
 | 7 | LLM dismissal by `policy_id` | Over-dismisses repeated IDs | Dismiss per-violation instance |
-| 8 | No frontend tests | UI regressions invisible | Add Vitest + React Testing Library |
+| 8 | Frontend tests cover only Static Scan + Dashboard pages | Regressions on other pages invisible | Extend RTL suites to remaining pages |
 | 9 | Secret files must stay untracked | Secret-leak risk | `.env` is ignored locally; keep only `.env.example` tracked |
+| 10 | SQLite on Render's free ephemeral disk | Prod scan history lost on restart | Paid Render disk (documented in `render.yaml`) or Postgres |

@@ -17,16 +17,23 @@ Two GitHub Actions workflow files live in `.github/workflows/`:
 Runs on every push and pull request to `main` / `master`.
 
 ```
-Steps:
+Steps (python job):
   1. Checkout
   2. Set up Python 3.11
   3. pip install -e ".[dev]"
   4. ruff check agentshield tests
   5. pytest --tb=short -q
+  6. python -m agentshield eval benchmarks/labeled --min-f1 0.95   (labeled-corpus F1 gate)
+
+Steps (frontend job, in web/, Node 22):
+  1. npm ci
+  2. npm run build   (tsc + vite)
+  3. npm run test    (vitest)
 ```
 
-No configuration required. All 49 unit tests must pass and the linter must
-produce zero errors for the job to succeed.
+No configuration required. All 136 backend tests, the labeled eval, and the 12
+frontend tests must pass — and the linter must produce zero errors — for the job
+to succeed.
 
 ## `scan.yml` — Security scan
 

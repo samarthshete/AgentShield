@@ -1,7 +1,7 @@
 # AgentShield — Implementation Status
 
-> Snapshot from a direct source read on 2026-07-01. Backend `pytest` → **129 passed**;
-> frontend `vitest` → **7 passed**. Live on Render (API) + Vercel (web) — see
+> Snapshot from a direct source read on 2026-07-09. Backend `pytest` → **136 passed**;
+> frontend `vitest` → **12 passed**. Live on Render (API) + Vercel (web) — see
 > [PROJECT_STATUS.md](./PROJECT_STATUS.md).
 > "Done" = code exists, is wired, and is covered by tests or a working build.
 
@@ -31,6 +31,10 @@
 | Honest dashboard hero: labeled-eval F1/precision/recall + Wilson CI | `web/src/pages/DashboardPage.tsx`, `metrics/aggregator.py` | build |
 | Light/dark theme toggle (token-driven, localStorage, system default) | `web/src/lib/theme.ts`, `components/ui/ThemeToggle.tsx` | `theme.test.ts` |
 | React console (7 pages incl. Settings, live-wired, builds clean) | `web/src/**` | `lib/*.test.ts` (7) |
+| **LLM confirmation tier** (optional, flag OFF): escalates only HIGH/CRITICAL `uncertain` candidates; injection-hardened, fail-safe, budget-capped, severity + confidence recall guardrails; **measured on the labeled corpus** (`gpt-4o-mini` does not beat the deterministic baseline — see [METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md)) | `agentshield/detect/semantic.py` (`AGENTSHIELD_SEMANTIC_BACKEND=llm`) | `test_semantic.py` (16) |
+| Frontend page-render tests (RTL): Static Scan + Dashboard happy/empty/error paths | `web/src/pages/*.test.tsx` | 12 frontend tests total |
+| SQLite FK constraints (cascades) + indexes on FK/ordering columns | `storage/sqlite_store.py` | suite green over new schema |
+| Flagship UI: severity-distribution bar + KPI stat tiles + severity-accented findings rows | `web/src/components/ui/SeverityBar.tsx`, `StatTile.tsx` | verified live |
 | CI: python lint/test/eval + frontend build/test | `.github/workflows/ci.yml` | n/a (CI) |
 | Production deployment: Render (API) + Vercel (web) + local compose | `Dockerfile`, `docker-compose.yml`, `render.yaml`, `web/vercel.json`, `docs/DEPLOY.md` | `docker compose` smoke test |
 | Phase 7 validation corpus (29 artifacts) + results | `benchmarks/phase7_public_artifacts/`, `docs/internal/phase7/` | n/a |
@@ -60,14 +64,18 @@ No outright **broken** code was found — the suite is green and the build passe
 | Missing | Why it matters | Priority |
 |---|---|---|
 | Independent precision/recall corpus expansion | Detection credibility is still unproven on non-self-authored data | **P0** |
-| Deep semantic / LLM-primary detection | Deterministic confirmer shipped; LLM tier built but flag-off (`feat/llm-confirmer-tier`) — enabling + measuring a genuine corpus precision gain is still open | P1 |
-| Frontend page-render tests (RTL) | Lib tests (api/settings/theme) + CI build gate exist; per-page render tests still missing | P2 |
+| A **net-win** LLM/semantic tier | LLM tier is built, guarded, and **measured** — `gpt-4o-mini` loses to the deterministic baseline on the current corpus. A genuine gain needs a stronger model and/or a corpus with HIGH-severity prose false positives | P1 (research) |
+| Persistent scan history in production | Render free disk is ephemeral; needs a paid Render disk or Postgres (FK schema is ready) | P2 |
+
+(Resolved since 2026-07-01: frontend page-render tests now exist — `StaticScanPage.test.tsx`,
+`DashboardPage.test.tsx`.)
 
 ## 5. Technical debt
 
 - Hand-rolled HTTP for LLMs (`llm_judge.py`) duplicates ~120 near-identical lines between
   `OpenAIJudge` and `ClaudeJudge` — extractable into a shared base.
-- SQLite has no FK constraints/indexes; integrity is convention-only.
+- ~~SQLite has no FK constraints/indexes~~ — resolved: FK cascades + indexes on FK/ordering
+  columns landed in `storage/sqlite_store.py` (2026-07-06).
 - Multiple overlapping output dirs (`reports/`, `reports-test`, `agentshield-output/`,
   `agentshield-reports/`) are produced locally; `.gitignore` covers them, but a single
   canonical output path would reduce clutter.
@@ -78,8 +86,8 @@ No outright **broken** code was found — the suite is green and the build passe
 | # | Item | Severity | Location |
 |---|---|---|---|
 | 1 | ~~Open API + `CORS allow_origins=["*"]`~~ — fixed: `AGENTSHIELD_API_TOKEN` gate (timing-safe) + config-driven CORS + server-side-only LLM keys (`extra="forbid"`) | Resolved | `web/app.py` |
-| 2 | Rules are substring/regex (evadable); mitigated by the recall-safe semantic confirmer for prose false positives, but paraphrase/encoding evasion remains open (LLM tier addresses it, flag-off) | Medium (product) | `rules/*`, `detect/semantic.py` |
-| 3 | No FK/indexes → possible orphan rows | Low | `storage/sqlite_store.py` |
+| 2 | Rules are substring/regex (evadable); mitigated by the recall-safe semantic confirmer for prose false positives, but paraphrase/encoding evasion remains open (LLM tier built + measured — not a net win with `gpt-4o-mini`, kept flag-off) | Medium (product) | `rules/*`, `detect/semantic.py` |
+| 3 | ~~No FK/indexes → possible orphan rows~~ — fixed: FK cascades + indexes | Resolved | `storage/sqlite_store.py` |
 | 4 | `JudgeVerdict.notes` dropped on persist | Low | `storage/sqlite_store.py` |
 
 No injection/`eval`/unsafe-deserialization issues found — scanning is read-only string
@@ -87,18 +95,22 @@ work, and YAML uses `safe_load`. That's a genuine positive for a security tool.
 
 ## 7. Files / modules involved (hotspots)
 
-- Detection quality: `agentshield/rules/*`, `policy/policy_engine.py`
-- Validation credibility: `benchmarks/`, `dynamic/attack_generator.py`
-- Persistence integrity: `storage/sqlite_store.py`
-- Deploy gaps: (missing) `Dockerfile` (API auth + CORS now done in `web/app.py`)
-- Frontend tests: `web/src/**` (no `*.test.tsx`)
+- Detection quality: `agentshield/rules/*`, `detect/semantic.py`, `policy/policy_engine.py`
+- Validation credibility: `benchmarks/labeled/`, `eval/scorer.py`
+- Persistence durability in prod: Render disk / Postgres (schema integrity now enforced in
+  `storage/sqlite_store.py`)
+- Frontend tests: `web/src/pages/*.test.tsx` exist; remaining pages still untested
 
 ## 8. Priority order for fixing / building
 
-1. **P0 (done locally):** `.env` is ignored and `git log -- .env` shows no committed secret.
-2. **P0 (days):** expand independent validation set with **labels** → real precision/recall in
-   [METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md).
-3. **P1:** semantic detection mode (LLM-primary or embedding similarity) behind a flag.
-4. **P1:** frontend test suite (Vitest + RTL) covering each page's happy/empty/error path.
-5. **P2:** refactor LLM judges onto a shared HTTP base; persist judge `notes`.
-6. **P2 (only if hosting):** Dockerfile, Postgres + FKs. (API auth + CORS tightening — done.)
+1. **P0 (days):** expand the **public-only** share of the labeled corpus → broader
+   precision/recall claims in [METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md).
+2. **P1 (research):** a net-win LLM tier — stronger model and/or a corpus with HIGH-severity
+   prose false positives; guardrails already in place so enabling degrades gracefully.
+3. **P2:** persistent scan history in production (paid Render disk or Postgres).
+4. **P2:** refactor LLM judges onto a shared HTTP base; persist judge `notes`;
+   RTL tests for the remaining pages.
+
+(Done since the last snapshot: semantic confirmer, self-serve scanning, honest dashboard
+hero, LLM tier built + measured, frontend page tests, FK constraints + indexes,
+API auth + CORS, Docker/Render/Vercel deploy.)

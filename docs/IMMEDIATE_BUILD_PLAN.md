@@ -1,5 +1,14 @@
 # AgentShield — Immediate Build Plan (Top 3)
 
+> **Status update (2026-07-09): all three features shipped.**
+> **F1** — done: `agentshield eval` + 50-artifact labeled corpus, micro F1 98.08%, CI-gated.
+> **F2** — done and measured: deterministic semantic confirmer on by default; guarded LLM
+> tier built but flag-off because `gpt-4o-mini` doesn't beat the baseline
+> ([METRICS_AND_OUTCOMES.md](./METRICS_AND_OUTCOMES.md)).
+> **F3** — mostly done: token auth, config-driven CORS, Docker + compose, live Render +
+> Vercel deploy; structured logging + OpenTelemetry remain open.
+> The text below is the original plan, kept as the engineering record.
+
 > The three features to build next, in order, with exact technical steps, files, tests,
 > metrics, and the résumé/interview payoff. Grounded in the real codebase. No code is
 > partially implemented. Use this as the next-step plan from the current baseline.
